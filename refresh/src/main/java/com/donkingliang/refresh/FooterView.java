@@ -34,10 +34,10 @@ public class FooterView extends LinearLayout implements RefreshLayout.OnFooterSt
         this.setPadding(0, 20, 0, 30);
     }
 
-    private void initView(View view){
-        ivHeaderDownArrow = (ImageView)view.findViewById(R.id.iv_header_down_arrow);
-        ivHeaderLoading = (ImageView)view.findViewById(R.id.iv_header_loading);
-        textView = (TextView)view.findViewById(R.id.tv_header_state);
+    private void initView(View view) {
+        ivHeaderDownArrow = (ImageView) view.findViewById(R.id.iv_header_down_arrow);
+        ivHeaderLoading = (ImageView) view.findViewById(R.id.iv_header_loading);
+        textView = (TextView) view.findViewById(R.id.tv_header_state);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class FooterView extends LinearLayout implements RefreshLayout.OnFooterSt
     public void onNotMore(View tail) {
         ivHeaderLoading.setVisibility(GONE);
         ivHeaderDownArrow.setVisibility(GONE);
-        textView.setText("");
+        textView.setText("没有更多了");
         isMore = false;
     }
 

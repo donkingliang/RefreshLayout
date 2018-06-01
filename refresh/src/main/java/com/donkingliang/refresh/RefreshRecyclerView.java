@@ -1,11 +1,14 @@
 package com.donkingliang.refresh;
 
 import android.content.Context;
+import android.support.v4.view.ViewCompat;
+import android.support.v4.view.ViewGroupCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -133,51 +136,62 @@ public class RefreshRecyclerView extends RefreshLayout {
 
     @Override
     protected boolean canDropUp() {
-        boolean resultValue = false;
+//        boolean resultValue = false;
+//
+//        //如果RecyclerView没有数据，就不能上拉。
+//        if (mRecyclerView.getChildCount() == 0) {
+//            resultValue = false;
+//        } else {
+//            //如果可见的最后一个item不是RecyclerView的最后一个item，表示还没有滚动到最底部，不能上拉。。
+//            if (lastVisibleItem != mRecyclerView.getAdapter().getItemCount() - 1) {
+//                return false;
+//            }
+//
+//            //如果RecyclerView已经拉到最底部，就可以上拉。
+//            //获取RecyclerView最后一个子View,并且判断这个View是否已经滚动到最底部。
+//            View view = mRecyclerView.getChildAt(mRecyclerView.getChildCount() - 1);
+//            int bottomMargin = ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
+//            if (view.getBottom() + bottomMargin + getPaddingBottom() <= getHeight()) {
+//                resultValue = true;
+//            }
+//        }
+//        return resultValue;
 
-        //如果RecyclerView没有数据，就不能上拉。
-        if (mRecyclerView.getChildCount() == 0) {
-            resultValue = false;
-        } else {
-            //如果可见的最后一个item不是RecyclerView的最后一个item，表示还没有滚动到最底部，不能上拉。。
-            if (lastVisibleItem != mRecyclerView.getAdapter().getItemCount() - 1) {
-                return false;
-            }
+        getVisibleItem();
+        boolean can = ViewCompat.canScrollVertically(mRecyclerView, -1);
+        Log.e("canDropUp", "****" + can);
 
-            //如果RecyclerView已经拉到最底部，就可以上拉。
-            //获取RecyclerView最后一个子View,并且判断这个View是否已经滚动到最底部。
-            View view = mRecyclerView.getChildAt(mRecyclerView.getChildCount() - 1);
-            int bottomMargin = ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
-            if (view.getBottom() + bottomMargin + getPaddingBottom() <= getHeight()) {
-                resultValue = true;
-            }
-        }
-        return resultValue;
+        return mRecyclerView.computeVerticalScrollOffset() + mRecyclerView.computeVerticalScrollExtent()
+                >= mRecyclerView.computeVerticalScrollRange();
+//        return lastVisibleItem == mRecyclerView.getAdapter().getItemCount() - 1 && !can;
     }
 
     @Override
     protected boolean canDropDown() {
-        boolean resultValue = false;
-        int childNum = mRecyclerView.getChildCount();
-
-        //如果RecyclerView没有数据，就可以下拉。
-        if (childNum == 0) {
-            resultValue = true;
-        } else {
-            //如果可见的第一个item不是RecyclerView的第一个item，表示还没有滚动到最顶部，不能下拉。
-            if (firstVisibleItem != 0) {
-                return false;
-            }
-
-            //如果RecyclerView已经拉到最底部，就可以下拉。
-            //获取RecyclerView的第一个子View,并且判断这个View是否已经滚动到最顶部
-            View view = mRecyclerView.getChildAt(0);
-            int topMargin = ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).topMargin;
-            if (view.getTop() - topMargin - mRecyclerView.getPaddingTop() >= 0) {
-                resultValue = true;
-            }
-        }
-        return resultValue;
+//        boolean resultValue = false;
+//        int childNum = mRecyclerView.getChildCount();
+//
+//        //如果RecyclerView没有数据，就可以下拉。
+//        if (childNum == 0) {
+//            resultValue = true;
+//        } else {
+//            //如果可见的第一个item不是RecyclerView的第一个item，表示还没有滚动到最顶部，不能下拉。
+//            if (firstVisibleItem != 0) {
+//                return false;
+//            }
+//
+//            //如果RecyclerView已经拉到最底部，就可以下拉。
+//            //获取RecyclerView的第一个子View,并且判断这个View是否已经滚动到最顶部
+//            View view = mRecyclerView.getChildAt(0);
+//            int topMargin = ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).topMargin;
+//            if (view.getTop() - topMargin - mRecyclerView.getPaddingTop() >= 0) {
+//                resultValue = true;
+//            }
+//        }
+//        return resultValue;
+        boolean can = ViewCompat.canScrollVertically(mRecyclerView, 1);
+//        Log.e("canDropUp", "----" + can);
+        return mRecyclerView.computeVerticalScrollOffset() <= 0;
     }
 
     @Override

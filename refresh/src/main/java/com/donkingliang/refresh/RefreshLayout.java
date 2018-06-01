@@ -4,12 +4,12 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v4.view.NestedScrollingParent;
-import android.support.v4.view.NestedScrollingParentHelper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
@@ -22,7 +22,8 @@ public abstract class RefreshLayout extends ViewGroup implements NestedScrolling
 
     protected Context mContext;
 
-    NestedScrollingParentHelper mParentHelper;
+    protected int mTouchSlop;
+
 //
 //    //头部下拉的最小高度
 //    private static final int HEAD_DEFAULT_HEIGHT = 100;
@@ -149,7 +150,8 @@ public abstract class RefreshLayout extends ViewGroup implements NestedScrolling
         setClipToPadding(false);
         initHeaderLayout();
         initFooterLayout();
-        mParentHelper = new NestedScrollingParentHelper(this);
+        ViewConfiguration configuration = ViewConfiguration.get(context);
+        mTouchSlop = configuration.getScaledTouchSlop();
     }
 
     /**
@@ -715,158 +717,158 @@ public abstract class RefreshLayout extends ViewGroup implements NestedScrolling
 
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        Log.e("eee", "onStartNestedScroll = " + child + " + " + target + " + " + nestedScrollAxes);
-        return true;
+        return isLoading() || !isMore;
     }
 
     @Override
     public void onNestedScrollAccepted(View child, View target, int axes) {
-        Log.e("eee", "onNestedScrollAccepted = " + child + " + " + target + " + " + axes);
         super.onNestedScrollAccepted(child, target, axes);
     }
 
     @Override
     public void onStopNestedScroll(View child) {
-        Log.e("eee", "onStopNestedScroll = " + child);
-        restore();
         super.onStopNestedScroll(child);
     }
 
     @Override
     public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-        Log.e("eee", "onNestedScroll = " + target + " + " + dxConsumed + " + " + dyConsumed + "  + " + dxUnconsumed);
-        super.onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed);
+        if (mIsRefreshing) {
+            int scrollY = getScrollY();
+            if (dyUnconsumed < 0 && scrollY > -mHeaderHeight) {
+                int offset = -getScrollY() - mHeaderHeight;
+                if (offset < 0) {
+                    scrollBy(0, Math.max(dyUnconsumed, offset));
+                }
+            }
+        }
+
+        if (mIsLoadingMore || !isMore) {
+            int scrollY = getScrollY();
+            if (dyUnconsumed > 0 && scrollY < mFooterHeight) {
+                scrollBy(0, Math.min(dyUnconsumed, mFooterHeight - scrollY));
+            }
+        }
     }
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-        Log.e("****", "onNestedPreScroll = dx:" + dx + " + dy:" + dy);
-
-        if (pullDown()) {
-            if (dy < 0) {
-                if (getScrollY() > -mHeaderHeight) {
-                    scroll(getScrollY() + dy);
-                }
-                consumed[1] += dy;
-            } else if (getScrollY() < 0) {
-                int offset = getScrollY() + dy;
-                if (offset < 0) {
-                    scroll(offset);
-                } else {
-                    scroll(0);
-                }
-                consumed[1] += dy;
-            }
-        }
-
-        // pullDown() && y - mY > 20
-        if (dy > 0) {
-
-        }
         if (mIsRefreshing) {
             int scrollY = getScrollY();
-            if (scrollY > 0) {
-
+            if (dy > 0 && scrollY < 0) {
+                scrollBy(0, Math.min(dy, -scrollY));
+                consumed[1] = dy;
             }
         }
 
-//        super.onNestedPreScroll(target, dx, dy, consumed);
+        if (mIsLoadingMore || !isMore) {
+            int scrollY = getScrollY();
+            if (dy < 0 && scrollY > 0) {
+                scrollBy(0, Math.max(dy, -scrollY));
+                consumed[1] = dy;
+            }
+        }
+
     }
 
     @Override
     public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
-        Log.e("eee", "onNestedFling = " + target + " + " + velocityX + " + " + velocityY + "  + " + consumed);
+
         return super.onNestedFling(target, velocityX, velocityY, consumed);
     }
 
     @Override
     public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
-        Log.e("eee", "onNestedPreFling = " + target + " + " + velocityX + " + " + velocityY);
-        return super.onNestedPreFling(target, velocityX, velocityY);
+        if (mIsRefreshing && velocityY > 0 && getScrollY() < 0) {
+            restore();
+        }
+
+        if ((mIsLoadingMore || !isMore) && velocityY < 0 && getScrollY() > 0) {
+            restore();
+        }
+        return false;
     }
 
     @Override
     public int getNestedScrollAxes() {
-        Log.e("eee", "getNestedScrollAxes");
         return super.getNestedScrollAxes();
     }
 
-    //    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-//
-//        int y = (int) event.getY();
-//
-//        switch (event.getAction()) {
-//            case MotionEvent.ACTION_DOWN:
-//                return true;
-//            case MotionEvent.ACTION_MOVE:
-//                if (mY > y) {
-//                    if (mCurrentState == STATE_UP) {
-//                        scroll((mY - y) / mDamp);
-//                    }
-//                } else if (mCurrentState == STATE_DOWN) {
-//                    scroll((mY - y) / mDamp);
-//                }
-//                break;
-//
-//            case MotionEvent.ACTION_UP:
-//                if (!mIsRefreshing && !mIsLoadingMore) {
-//                    int scrollOffset = Math.abs(getScrollY());
-//                    if (mCurrentState == STATE_DOWN) {
-//                        if (scrollOffset < mFooterHeight) {
-//                            restore();
-//                        } else {
-//                            autoRefresh();
-//                        }
-//                    } else if (mCurrentState == STATE_UP) {
-//                        if (scrollOffset < mFooterHeight) {
-//                            restore();
-//                        } else {
-//                            autoLoadMore();
-//                        }
-//                    } else {
-//                        restore();
-//                    }
-//                }
-//                mY = 0;
-//                break;
-//
-//            default:
-//                break;
-//        }
-//        return super.onTouchEvent(event);
-//    }
-//
-    int mY = 0;
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        int y = (int) event.getY();
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (mTouchY > y) {
+                    if (mCurrentState == STATE_UP) {
+                        scroll((mTouchY - y) / mDamp);
+                    }
+                } else if (mCurrentState == STATE_DOWN) {
+                    scroll((mTouchY - y) / mDamp);
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                if (!mIsRefreshing && !mIsLoadingMore) {
+                    int scrollOffset = Math.abs(getScrollY());
+                    if (mCurrentState == STATE_DOWN) {
+                        if (scrollOffset < mFooterHeight) {
+                            restore();
+                        } else {
+                            autoRefresh();
+                        }
+                    } else if (mCurrentState == STATE_UP) {
+                        if (scrollOffset < mFooterHeight) {
+                            restore();
+                        } else {
+                            autoLoadMore();
+                        }
+                    } else {
+                        restore();
+                    }
+                }
+                mTouchY = 0;
+                break;
+
+            default:
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    //手指触摸屏幕时的触摸点
+    int mTouchY = 0;
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
 
-//        int y = (int) ev.getY();
+        int y = (int) ev.getY();
 
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                mY = (int) ev.getY();
-//                return false;
+                mTouchY = (int) ev.getY();
+                return false;
             case MotionEvent.ACTION_MOVE:
-//                if (isLoading()) {
-//                    return false;
-//                }
-//
-//                if (pullDown() && y - mY > 20) {
-//                    mCurrentState = STATE_DOWN;
-//                    return true;
-//                }
-//
-//                if (pullUp() && mY - y > 20) {
-//                    mCurrentState = STATE_UP;
-//                    return true;
-//                }
-//
-//                return false;
-            case MotionEvent.ACTION_UP:
+                if (isLoading()) {
+                    return false;
+                }
 
-//                return false;
+                if (pullDown() && y - mTouchY > mTouchSlop) {
+                    mCurrentState = STATE_DOWN;
+                    return true;
+                }
+
+                if (pullUp() && mTouchY - y > mTouchSlop) {
+                    mCurrentState = STATE_UP;
+                    return true;
+                }
+
+                return false;
+            case MotionEvent.ACTION_UP:
+                return false;
         }
 
         return super.onInterceptTouchEvent(ev);
