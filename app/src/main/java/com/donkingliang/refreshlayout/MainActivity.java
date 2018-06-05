@@ -3,32 +3,37 @@ package com.donkingliang.refreshlayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 
+import com.donkingliang.refresh.FooterView;
+import com.donkingliang.refresh.HeaderView;
 import com.donkingliang.refresh.RefreshLayout;
-import com.donkingliang.refresh.RefreshRecyclerView;
 import com.donkingliang.refreshlayout.adapter.ItemAdapter;
 
 public class MainActivity extends AppCompatActivity {
 
-    private RefreshRecyclerView mRefresh;
+    private RefreshLayout mRefresh;
+    private RecyclerView mRvRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRefresh = (RefreshRecyclerView) findViewById(R.id.rv_refresh);
+        mRefresh = (RefreshLayout) findViewById(R.id.refresh);
+        mRvRefresh = (RecyclerView) findViewById(R.id.rv_refresh);
 
-        mRefresh.setLayoutManager(new LinearLayoutManager(this));
-        mRefresh.setAdapter(new ItemAdapter(this));
-
+        mRvRefresh.setLayoutManager(new LinearLayoutManager(this));
+        mRvRefresh.setAdapter(new ItemAdapter(this));
+        mRefresh.setHeaderView(new HeaderView(this));
+        mRefresh.setFooterView(new FooterView(this));
         mRefresh.setOnRefreshListener(new RefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 mRefresh.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-//                        mRefresh.refreshFinish();
+                        mRefresh.refreshFinish();
                     }
                 }, 3000);
             }
@@ -40,11 +45,13 @@ public class MainActivity extends AppCompatActivity {
                 mRefresh.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-//                        mRefresh.refreshFinish();
+                        mRefresh.refreshFinish();
                     }
                 }, 3000);
             }
         });
-//        mRefresh.isMore(false);
+
+        mRefresh.autoRefresh();
+
     }
 }

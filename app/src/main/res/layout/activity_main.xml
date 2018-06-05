@@ -4,9 +4,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <com.donkingliang.refresh.RefreshRecyclerView
-        android:id="@+id/rv_refresh"
+    <com.donkingliang.refresh.RefreshLayout
+        android:id="@+id/refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:overScrollMode="never"/>
+
+    </com.donkingliang.refresh.RefreshLayout>
 
 </LinearLayout>

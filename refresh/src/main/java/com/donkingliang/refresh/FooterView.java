@@ -61,7 +61,6 @@ public class FooterView extends LinearLayout implements RefreshLayout.OnFooterSt
             ivHeaderLoading.setVisibility(VISIBLE);
             ivHeaderDownArrow.setVisibility(GONE);
             ivHeaderLoading.setImageDrawable(animationDrawable);
-//            AnimationDrawable animationDrawable = (AnimationDrawable) head.getBackground();
             animationDrawable.start();
             textView.setText("正在加载");
         }
@@ -69,7 +68,6 @@ public class FooterView extends LinearLayout implements RefreshLayout.OnFooterSt
 
     @Override
     public void onRetract(View footerView) {
-//            animationDrawable = (AnimationDrawable) head.getBackground();
         if (isMore) {
             restore();
             animationDrawable.stop();
@@ -78,19 +76,18 @@ public class FooterView extends LinearLayout implements RefreshLayout.OnFooterSt
     }
 
     @Override
-    public void onNotMore(View tail) {
-        ivHeaderLoading.setVisibility(GONE);
-        ivHeaderDownArrow.setVisibility(GONE);
-        textView.setText("没有更多了");
-        isMore = false;
-    }
-
-    @Override
-    public void onHasMore(View tail) {
-        ivHeaderLoading.setVisibility(GONE);
-        ivHeaderDownArrow.setVisibility(VISIBLE);
-        textView.setText("上拉加载");
-        isMore = true;
+    public void onHasMore(View tail, boolean hasMore) {
+        if (hasMore) {
+            ivHeaderLoading.setVisibility(GONE);
+            ivHeaderDownArrow.setVisibility(VISIBLE);
+            textView.setText("上拉加载");
+            isMore = true;
+        } else {
+            ivHeaderLoading.setVisibility(GONE);
+            ivHeaderDownArrow.setVisibility(GONE);
+            textView.setText("没有更多了");
+            isMore = false;
+        }
     }
 
     private void restore() {

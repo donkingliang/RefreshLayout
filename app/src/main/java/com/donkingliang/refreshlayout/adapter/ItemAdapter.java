@@ -30,11 +30,12 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemHolder> {
 
     @Override
     public void onBindViewHolder(ItemHolder holder, int position) {
+        holder.tvName.setText("item:" + position);
     }
 
     @Override
     public int getItemCount() {
-        return 50;
+        return 30;
     }
 
     static class ItemHolder extends RecyclerView.ViewHolder {
