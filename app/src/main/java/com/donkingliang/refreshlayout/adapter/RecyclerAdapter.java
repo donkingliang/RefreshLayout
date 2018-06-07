@@ -14,11 +14,12 @@ import com.donkingliang.refreshlayout.R;
  * Author:lry
  * Date:2018/5/25
  */
-public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemHolder> {
+public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ItemHolder> {
 
     private Context mContext;
+    private int mCount;
 
-    public ItemAdapter(Context context) {
+    public RecyclerAdapter(Context context) {
         mContext = context;
     }
 
@@ -35,7 +36,12 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemHolder> {
 
     @Override
     public int getItemCount() {
-        return 30;
+        return mCount;
+    }
+
+    public void setCount(int count) {
+        mCount = count;
+        notifyDataSetChanged();
     }
 
     static class ItemHolder extends RecyclerView.ViewHolder {

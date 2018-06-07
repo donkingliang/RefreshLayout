@@ -2,19 +2,42 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
     android:orientation="vertical">
 
-    <com.donkingliang.refresh.RefreshLayout
-        android:id="@+id/refresh"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+    <Button
+        android:id="@+id/btn_recycler_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="嵌套RecyclerView"
+        android:textAllCaps="false" />
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/rv_refresh"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:overScrollMode="never"/>
+    <Button
+        android:id="@+id/btn_list_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="嵌套ListView"
+        android:textAllCaps="false" />
 
-    </com.donkingliang.refresh.RefreshLayout>
+    <Button
+        android:id="@+id/btn_nested_scroll_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="嵌套NestedScrollView"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/btn_scroll_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="嵌套ScrollView"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/btn_web_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="嵌套WebView"
+        android:textAllCaps="false" />
 
 </LinearLayout>

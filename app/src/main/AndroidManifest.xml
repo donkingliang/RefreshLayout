@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.donkingliang.refreshlayout">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -16,6 +18,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".RecyclerViewActivity"
+            android:label="嵌套RecyclerView" />
+        <activity
+            android:name=".ListViewActivity"
+            android:label="嵌套ListView" />
+        <activity
+            android:name=".NestedScrollViewActivity"
+            android:label="嵌套NestedScrollView" />
+        <activity
+            android:name=".ScrollViewActivity"
+            android:label="嵌套ScrollView" />
+        <activity
+            android:name=".WebViewActivity"
+            android:label="嵌套WebView" />
     </application>
 
 </manifest>

@@ -6,21 +6,22 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.v4.view.NestedScrollingParent;
-import android.support.v4.view.ScrollingView;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.LinearLayout;
 
+import java.lang.reflect.Method;
+
 /**
- * 自定义的上下拉刷新控件
+ * 下拉刷新和上拉加载更多的控件
+ * 它用于作为可垂直滑动的容器的直接父布局，实现下拉刷新和上拉加载更多的功能。
  */
-public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
+public class RefreshLayout extends ViewGroup {
 
     protected Context mContext;
 
@@ -110,16 +111,23 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     //是否显示空布局
     private boolean mIsEmpty = false;
 
-    //----------------  用于监听Fling时的滚动状态  -------------------//
-    // 在Fling的情况下，每隔50毫秒获取一下页面的滚动距离，如果跟上次没有变化，表示滚动停止。
-    // 之所以用延时获取滚动距离方式获取滚动状态，是因为在sdk 23前，无法给View设置OnScrollChangeListener。
-    private final int FLING_DELAY = 50;
-    private Handler mFlingHandler = new Handler();
-    private Runnable mFlingChangeListener = new Runnable() {
+    //滑动到底部，自动触发加载更多
+    private boolean mAutoLoadMore = true;
+
+    //是否拦截触摸事件，
+    private boolean mInterceptTouchEvent = false;
+
+    //----------------  用于监听手指松开时，屏幕的滑动状态  -------------------//
+    //手指松开时，不一定是滑动停止，也有可能是Fling，所以需要监听屏幕滑动的情况。
+    // 每隔50毫秒获取一下页面的滑动距离，如果跟上次没有变化，表示滑动停止。
+    // 之所以用延时获取滑动距离的方式获取滑动状态，是因为在sdk 23前，无法给所有的View设置OnScrollChangeListener。
+    private final int SCROLL_DELAY = 50;
+    private Handler mScrollHandler = new Handler();
+    private Runnable mScrollChangeListener = new Runnable() {
         @Override
         public void run() {
-            if (computeFlingOffset()) {
-                mFlingHandler.postDelayed(mFlingChangeListener, FLING_DELAY);
+            if (listenScrollChange()) {
+                mScrollHandler.postDelayed(mScrollChangeListener, SCROLL_DELAY);
             }
         }
     };
@@ -131,6 +139,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     private static final int ORIENTATION_FLING_DOWN = 2;
 
     //手指触摸屏幕时的触摸点
+    int mTouchX = 0;
     int mTouchY = 0;
 
     public RefreshLayout(Context context) {
@@ -144,10 +153,14 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     public RefreshLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mContext = context;
+        init();
+    }
+
+    private void init() {
         setClipToPadding(false);
         initHeaderLayout();
         initFooterLayout();
-        ViewConfiguration configuration = ViewConfiguration.get(context);
+        ViewConfiguration configuration = ViewConfiguration.get(mContext);
         mTouchSlop = configuration.getScaledTouchSlop();
     }
 
@@ -166,7 +179,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     /**
      * 设置头部View
      *
-     * @param headerView
+     * @param headerView 头部View。这个View必须实现{@link OnHeaderStateListener}接口。
      */
     public void setHeaderView(@NonNull View headerView) {
         if (headerView instanceof OnHeaderStateListener) {
@@ -195,7 +208,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     /**
      * 设置尾部View
      *
-     * @param footerView
+     * @param footerView 尾部View。这个View必须实现{@link OnFooterStateListener}接口
      */
     public void setFooterView(@NonNull View footerView) {
         if (footerView instanceof OnFooterStateListener) {
@@ -213,7 +226,6 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
         //测量头部高度
         View headerView = getChildAt(0);
         measureChild(headerView, widthMeasureSpec, heightMeasureSpec);
@@ -226,21 +238,30 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         int count = getChildCount();
         int contentHeight = 0;
         int contentWidth = 0;
-        if (count > 2) {
-            View content = getChildAt(2);
-            measureChild(content, widthMeasureSpec, heightMeasureSpec);
-            contentHeight = content.getMeasuredHeight();
-            contentWidth = content.getMeasuredWidth();
+        if (mIsEmpty) {
+            //空布局容器
+            if (count > 3) {
+                View emptyView = getChildAt(3);
+                measureChild(emptyView, widthMeasureSpec, heightMeasureSpec);
+                contentHeight = emptyView.getMeasuredHeight();
+                contentWidth = emptyView.getMeasuredWidth();
+            }
+        } else {
+            //内容布局容器
+            if (count > 2) {
+                View content = getChildAt(2);
+                measureChild(content, widthMeasureSpec, heightMeasureSpec);
+                contentHeight = content.getMeasuredHeight();
+                contentWidth = content.getMeasuredWidth();
+            }
         }
 
-        //设置PullRefreshView的宽高
         setMeasuredDimension(measureWidth(widthMeasureSpec, contentWidth),
                 measureHeight(heightMeasureSpec, contentHeight));
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-
         //布局头部
         View headerView = getChildAt(0);
         headerView.layout(getPaddingLeft(), -headerView.getMeasuredHeight(), getPaddingLeft() + headerView.getMeasuredWidth(), 0);
@@ -302,13 +323,413 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         return result;
     }
 
+    int oldY;
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mTouchX = (int) ev.getX();
+                mTouchY = (int) ev.getY();
+                oldY = (int) ev.getY();
+                mScrollHandler.removeCallbacksAndMessages(null);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int newY = (int) ev.getY();
+                if (isNestedScroll()) {
+                    if ((canPullDown() && newY > oldY)
+                            || (canPullUp() && newY < oldY)) {
+                        nestedScroll(oldY - newY);
+                    }
+
+                    if ((getScrollY() > 0 && newY > oldY)
+                            || (getScrollY() < 0 && newY < oldY)) {
+                        nestedPreScroll(oldY - newY);
+                    }
+                }
+                oldY = newY;
+
+                break;
+            case MotionEvent.ACTION_UP:
+
+                int y = (int) ev.getY();
+                int x = (int) ev.getX();
+                //是否是点击事件，如果按下和松开的坐标没有改变，就认为是点击事件
+                boolean isClick = Math.abs(mTouchX - x) < mTouchSlop && Math.abs(mTouchY - y) < mTouchSlop;
+
+                if (!mInterceptTouchEvent && !isClick && !mIsEmpty) {
+                    //监听手指松开时，屏幕的滑动状态
+                    //手指松开时，不一定是滑动停止，也有可能是Fling，所以需要监听屏幕滑动的情况。
+                    initScrollListen();
+                    mScrollHandler.postDelayed(mScrollChangeListener, SCROLL_DELAY);
+                }
+
+                mTouchX = 0;
+                mTouchY = 0;
+                break;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+
+        int y = (int) ev.getY();
+
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mInterceptTouchEvent = false;
+                return false;
+            case MotionEvent.ACTION_MOVE:
+                if (isLoadingOrLoading()) {
+                    return false;
+                }
+
+                if (pullRefresh() && y - mTouchY > mTouchSlop) {
+                    mCurrentState = STATE_DOWN;
+                    mInterceptTouchEvent = true;
+                    return true;
+                }
+
+                if (mHasMore && pullLoadMore() && mTouchY - y > mTouchSlop) {
+                    mCurrentState = STATE_UP;
+                    mInterceptTouchEvent = true;
+                    return true;
+                }
+
+                return false;
+            case MotionEvent.ACTION_UP:
+                return false;
+        }
+
+        return super.onInterceptTouchEvent(ev);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        int y = (int) event.getY();
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (mTouchY > y) {
+                    if (mCurrentState == STATE_UP && !mIsEmpty) {
+                        scroll((mTouchY - y) / mDamp, true);
+                    }
+                } else if (mCurrentState == STATE_DOWN || mIsEmpty) {
+                    scroll((mTouchY - y) / mDamp, true);
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                if (!mIsRefreshing && !mIsLoadingMore) {
+                    int scrollOffset = Math.abs(getScrollY());
+                    if (mCurrentState == STATE_DOWN || mIsEmpty) {
+                        if (scrollOffset < getHeaderTriggerHeight()) {
+                            restore(true);
+                        } else {
+                            triggerRefresh();
+                        }
+                    } else if (mCurrentState == STATE_UP) {
+                        if (scrollOffset < getFooterTriggerHeight()) {
+                            restore(true);
+                        } else {
+                            triggerLoadMore();
+                        }
+                    } else {
+                        restore(true);
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
     /**
-     * 是否正在加载 (正在刷新或者正在加载更多)
+     * 是否可下拉刷新。
+     *
+     * @return 启用了下拉刷新功能，并且可以下拉显示头部，返回true；否则返回false。
+     */
+    protected boolean pullRefresh() {
+        return mIsRefresh && canPullDown();
+    }
+
+    /**
+     * 是否可上拉加载更多。
+     *
+     * @return 启用了上拉加载更多功能，并且有更多数据，并且可以下拉显示头部，返回true，否则返回false。
+     */
+    protected boolean pullLoadMore() {
+        return mIsLoadMore && mHasMore && canPullUp();
+    }
+
+    /**
+     * 是否可下拉显示头部。
+     *
+     * @return 如果是空布局或者内容布局已经滑动到顶部，则返回true，否则返回false。
+     */
+    protected boolean canPullDown() {
+
+        if (mIsEmpty) {
+            return true;
+        }
+
+        if (getChildCount() >= 3) {
+            return computeVerticalScrollOffset(getChildAt(2)) <= 0;
+        }
+        return true;
+    }
+
+    /**
+     * 是否可上拉显示尾部。
+     *
+     * @return 如果不是空布局，并且内容布局已经滑动到底部，则返回true，否则返回false。
+     */
+    protected boolean canPullUp() {
+
+        if (mIsEmpty) {
+            return false;
+        }
+
+        if (getChildCount() >= 3) {
+            View view = getChildAt(2);
+            return computeVerticalScrollOffset(view) + computeVerticalScrollExtent(view)
+                    >= computeVerticalScrollRange(view);
+        }
+        return false;
+    }
+
+    /**
+     * 是否正在刷新或者正在加载更多
      *
      * @return
      */
-    private boolean isLoading() {
+    private boolean isLoadingOrLoading() {
         return mIsRefreshing || mIsLoadingMore;
+    }
+
+    /**
+     * 利用属性动画实现平滑滑动
+     *
+     * @param start       滑动的开始位置
+     * @param end         滑动的结束位置
+     * @param duration    滑动的持续时间
+     * @param isListening 是否监听滑动变化
+     * @param listener
+     */
+    private void smoothScroll(int start, int end, int duration, final boolean isListening,
+                              Animator.AnimatorListener listener) {
+        ValueAnimator animator = ValueAnimator.ofInt(start, end).setDuration(duration);
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                scroll((int) animation.getAnimatedValue(), isListening);
+            }
+        });
+        if (listener != null) {
+            animator.addListener(listener);
+        }
+        animator.start();
+    }
+
+    /**
+     * @param y           滑动y的位置
+     * @param isListening 是否监听滑动变化，如果为true，滑动的变化将回调到{@link OnHeaderStateListener}
+     *                    或{@link OnFooterStateListener}。
+     */
+    private void scroll(int y, boolean isListening) {
+
+        scrollTo(0, y);
+        if (isListening) {
+            int scrollOffset = Math.abs(y);
+
+            if (mCurrentState == STATE_DOWN && mOnHeaderStateListener != null) {
+                int height = getHeaderTriggerHeight();
+                mOnHeaderStateListener.onScrollChange(mHeaderView, scrollOffset,
+                        scrollOffset >= height ? 100 : scrollOffset * 100 / height);
+            }
+
+            if (mCurrentState == STATE_UP && mOnFooterStateListener != null && mHasMore) {
+                int height = getFooterTriggerHeight();
+                mOnFooterStateListener.onScrollChange(mFooterView, scrollOffset,
+                        scrollOffset >= height ? 100 : scrollOffset * 100 / height);
+            }
+        }
+    }
+
+    /**
+     * 是否要处理嵌套滑动。
+     *
+     * @return
+     */
+    private boolean isNestedScroll() {
+        return isLoadingOrLoading() || !mHasMore;
+    }
+
+    /**
+     * 处理嵌套滑动。
+     * @param dy 滑动偏移量
+     */
+    private void nestedPreScroll(int dy) {
+        if (mIsRefreshing) {
+            int scrollY = getScrollY();
+            if (dy > 0 && scrollY < 0) {
+                scrollBy(0, Math.min(dy, -scrollY));
+            }
+        }
+
+        if (mIsLoadingMore || !mHasMore) {
+            int scrollY = getScrollY();
+            if (dy < 0 && scrollY > 0) {
+                scrollBy(0, Math.max(dy, -scrollY));
+            }
+        }
+    }
+
+    /**
+     * 处理嵌套滑动。
+     * @param dy 滑动偏移量
+     */
+    private void nestedScroll(int dy) {
+        if (mIsRefreshing) {
+            int height = getHeaderTriggerHeight();
+            int scrollY = getScrollY();
+            if (dy < 0 && scrollY > -height) {
+                int offset = -getScrollY() - height;
+                if (offset < 0) {
+                    scrollBy(0, Math.max(dy, offset));
+                }
+            }
+        }
+
+        if (mIsLoadingMore || !mHasMore) {
+            int height = getFooterTriggerHeight();
+            int scrollY = getScrollY();
+            if (dy > 0 && scrollY < height) {
+                scrollBy(0, Math.min(dy, height - scrollY));
+            }
+        }
+    }
+
+    /**
+     * 手指松开时，监听滑动状态的初始工作
+     */
+    private void initScrollListen() {
+        if (getChildCount() >= 3) {
+            oldOffsetY = computeVerticalScrollOffset(getChildAt(2));
+            mFlingOrientation = ORIENTATION_FLING_NONE;
+        }
+    }
+
+    /**
+     * 监听手指松开时，屏幕的滑动状态
+     *
+     * @return 返回true表示正在滑动，继续监听；返回false表示滑动停止或者不需要监听。
+     */
+    private boolean listenScrollChange() {
+        if (getChildCount() >= 3) {
+            int offsetY = computeVerticalScrollOffset(getChildAt(2));
+            int interval = Math.abs(offsetY - oldOffsetY);
+            int offset = 0;
+            if (interval > 0) {
+                if (offsetY > oldOffsetY) {
+                    mFlingOrientation = ORIENTATION_FLING_UP;
+                    offset = getScrollBottomOffset();
+                } else if (offsetY < oldOffsetY) {
+                    mFlingOrientation = ORIENTATION_FLING_DOWN;
+                    offset = getScrollTopOffset();
+                }
+                if (interval > 30 && offset < interval) {
+                    if (mIsRefreshing && mFlingOrientation == ORIENTATION_FLING_DOWN) {
+                        int height = getHeaderTriggerHeight();
+                        smoothScroll(getScrollY(), -height, (int) (1.0f * height * SCROLL_DELAY / interval), false, null);
+                        return false; // 停止fling监听
+                    } else if ((mIsLoadingMore || !mHasMore) && mFlingOrientation == ORIENTATION_FLING_UP) {
+                        int height = getFooterTriggerHeight();
+                        smoothScroll(getScrollY(), height, (int) (1.0f * height * SCROLL_DELAY / interval), false, null);
+                        return false; // 停止fling监听
+                    }
+                }
+
+                oldOffsetY = offsetY;
+                return true;
+            } else {
+                // 滑动停止
+
+                //滑动停止时，如果已经滑动到底部，自动触发加载更多
+                if (mAutoLoadMore && getScrollBottomOffset() == 0) {
+                    autoLoadMore();
+                }
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 获取内容布局滑动到顶部的偏移量
+     *
+     * @return
+     */
+    private int getScrollTopOffset() {
+        if (getChildCount() >= 3) {
+            View view = getChildAt(2);
+            return computeVerticalScrollOffset(view);
+        }
+        return 0;
+    }
+
+    /**
+     * 获取内容布局滑动到底部部的偏移量
+     *
+     * @return
+     */
+    private int getScrollBottomOffset() {
+        if (getChildCount() >= 3) {
+            View view = getChildAt(2);
+            return computeVerticalScrollRange(view) - computeVerticalScrollOffset(view)
+                    - computeVerticalScrollExtent(view);
+        }
+        return 0;
+    }
+
+    private int computeVerticalScrollOffset(View view) {
+        try {
+            Method method = View.class.getDeclaredMethod("computeVerticalScrollOffset");
+            method.setAccessible(true);
+            return (int) method.invoke(view);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return view.getScrollY();
+    }
+
+    private int computeVerticalScrollRange(View view) {
+        try {
+            Method method = View.class.getDeclaredMethod("computeVerticalScrollRange");
+            method.setAccessible(true);
+            return (int) method.invoke(view);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return view.getHeight();
+    }
+
+    private int computeVerticalScrollExtent(View view) {
+        try {
+            Method method = View.class.getDeclaredMethod("computeVerticalScrollExtent");
+            method.setAccessible(true);
+            return (int) method.invoke(view);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return view.getHeight();
     }
 
     /**
@@ -333,46 +754,75 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     }
 
     /**
-     * 通知刷新完成
+     * 通知刷新完成。它会回调{@link OnHeaderStateListener#onRetract(View)}方法
      */
-    public void refreshFinish() {
-        if (isLoading()) {
-            if (mIsLoadingMore) {
-                mIsLoadingMore = false;
-                if (mOnFooterStateListener != null) {
-                    mOnFooterStateListener.onRetract(mFooterView);
-                }
-                if (getScrollY() > 0) {
-                    smoothScroll(getScrollY(), 0, 200, false, null);
-                    mCurrentState = STATE_NOT;
-                }
-            } else if (mIsRefreshing) {
-                mIsRefreshing = false;
-                if (mOnHeaderStateListener != null) {
-                    mOnHeaderStateListener.onRetract(mHeaderView);
-                }
-                if (getScrollY() < 0) {
-                    smoothScroll(getScrollY(), 0, 200, false, null);
-                    mCurrentState = STATE_NOT;
-                }
+    public void finishRefresh() {
+        if (mIsRefreshing) {
+            mIsRefreshing = false;
+            mCurrentState = STATE_NOT;
+            if (mOnHeaderStateListener != null) {
+                mOnHeaderStateListener.onRetract(mHeaderView);
             }
-        }
-    }
-
-    public void hasMore(boolean hasMore) {
-        if (mHasMore != hasMore) {
-            mHasMore = hasMore;
-            if (mOnFooterStateListener != null) {
-                mOnFooterStateListener.onHasMore(mFooterView, hasMore);
+            if (getScrollY() < 0) {
+                postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        //平滑收起头部。
+                        smoothScroll(getScrollY(), 0, 200, false, null);
+                    }
+                }, 500);
             }
         }
     }
 
     /**
-     * 触发下拉刷新
+     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View)}方法
+     */
+    public void finishLoadMore() {
+        if (mIsLoadingMore) {
+            mIsLoadingMore = false;
+            mCurrentState = STATE_NOT;
+            if (mOnFooterStateListener != null) {
+                mOnFooterStateListener.onRetract(mFooterView);
+            }
+
+            // 处理尾部的收起。
+            if (getScrollY() > 0) {
+                postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        if (mHasMore) {
+                            if (getScrollBottomOffset() > 0) {
+                                // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
+                                if (getChildCount() >= 3) {
+                                    View v = getChildAt(2);
+                                    if (v instanceof AbsListView) {
+                                        AbsListView listView = (AbsListView) v;
+                                        listView.smoothScrollBy(getScrollY(), 0);
+                                    } else {
+                                        v.scrollBy(0, getScrollY());
+                                    }
+                                }
+                                scroll(0, false);
+                            } else {
+                                // 如果没有新的内容加载出来，就平滑收起尾部。
+                                smoothScroll(getScrollY(), 0, 200, false, null);
+                            }
+                        } else {
+                            //如果没有更多数据，就继续显示尾部，不需要收起。
+                        }
+                    }
+                }, 500);
+            }
+        }
+    }
+
+    /**
+     * 自动触发下拉刷新。只有启用了下拉刷新功能时起作用。
      */
     public void autoRefresh() {
-        if (!mIsRefresh || isLoading()) {
+        if (!mIsRefresh || isLoadingOrLoading()) {
             return;
         }
         post(new Runnable() {
@@ -389,8 +839,11 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         });
     }
 
+    /**
+     * 触发下拉刷新
+     */
     private void triggerRefresh() {
-        if (!mIsRefresh || isLoading()) {
+        if (!mIsRefresh || isLoadingOrLoading()) {
             return;
         }
 
@@ -407,10 +860,10 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     }
 
     /**
-     * 触发上拉刷新
+     * 自动触发上拉加载更多。只有在启用了上拉加载更多功能并且有更多数据时起作用。
      */
     public void autoLoadMore() {
-        if (isLoading() || !mHasMore || !mIsLoadMore) {
+        if (isLoadingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
             return;
         }
         post(new Runnable() {
@@ -427,8 +880,11 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         });
     }
 
+    /**
+     * 触发上拉加载更多。
+     */
     private void triggerLoadMore() {
-        if (isLoading() || !mHasMore || !mIsLoadMore) {
+        if (isLoadingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
             return;
         }
         mIsLoadingMore = true;
@@ -442,40 +898,26 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         }
     }
 
-    private void smoothScroll(int start, int end, int duration, final boolean isListening,
-                              Animator.AnimatorListener listener) {
-        ValueAnimator animator = ValueAnimator.ofInt(start, end).setDuration(duration);
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                scroll((int) animation.getAnimatedValue(), isListening);
-            }
-        });
-        if (listener != null) {
-            animator.addListener(listener);
-        }
-        animator.start();
+    /**
+     * 是否自动触发加载更多。只有在启用了上拉加载更多功能时起作用。
+     *
+     * @param autoLoadMore 如果为true，滑动到底部，自动触发加载更多
+     */
+    public void setAutoLoadMore(boolean autoLoadMore) {
+        mAutoLoadMore = autoLoadMore;
     }
 
     /**
-     * @param offset
+     * 是否还有更多数据，只有为true是才能上拉加载更多.
+     * 它会回调{@link OnFooterStateListener#hasMore(boolean)}方法。
+     *
+     * @param hasMore 默认为true。
      */
-    private void scroll(int offset, boolean isListening) {
-
-        scrollTo(0, offset);
-        if (isListening) {
-            int scrollOffset = Math.abs(offset);
-
-            if (mCurrentState == STATE_DOWN && mOnHeaderStateListener != null) {
-                int height = getHeaderTriggerHeight();
-                mOnHeaderStateListener.onScrollChange(mHeaderView, scrollOffset,
-                        scrollOffset >= height ? 100 : scrollOffset * 100 / height);
-            }
-
-            if (mCurrentState == STATE_UP && mOnFooterStateListener != null && mHasMore) {
-                int height = getFooterTriggerHeight();
-                mOnFooterStateListener.onScrollChange(mFooterView, scrollOffset,
-                        scrollOffset >= height ? 100 : scrollOffset * 100 / height);
+    public void hasMore(boolean hasMore) {
+        if (mHasMore != hasMore) {
+            mHasMore = hasMore;
+            if (mOnFooterStateListener != null) {
+                mOnFooterStateListener.onHasMore(mFooterView, hasMore);
             }
         }
     }
@@ -504,18 +946,38 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         return height;
     }
 
+    /**
+     * 设置触发下拉刷新的最小高度。
+     *
+     * @param headerTriggerMinHeight
+     */
     public void setHeaderTriggerMinHeight(int headerTriggerMinHeight) {
         mHeaderTriggerMinHeight = headerTriggerMinHeight;
     }
 
+    /**
+     * 设置触发下拉刷新的最大高度。
+     *
+     * @param headerTriggerMaxHeight
+     */
     public void setHeaderTriggerMaxHeight(int headerTriggerMaxHeight) {
         mHeaderTriggerMaxHeight = headerTriggerMaxHeight;
     }
 
+    /**
+     * 设置触发上拉加载的最小高度。
+     *
+     * @param footerTriggerMinHeight
+     */
     public void setFooterTriggerMinHeight(int footerTriggerMinHeight) {
         mFooterTriggerMinHeight = footerTriggerMinHeight;
     }
 
+    /**
+     * 设置触发上拉加载的最大高度。
+     *
+     * @param footerTriggerMaxHeight
+     */
     public void setFooterTriggerMaxHeight(int footerTriggerMaxHeight) {
         mFooterTriggerMaxHeight = footerTriggerMaxHeight;
     }
@@ -535,308 +997,43 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
         }
     }
 
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                Log.e("eee", "111");
-                break;
-            case MotionEvent.ACTION_MOVE:
-                Log.e("eee", "222");
-                break;
-            case MotionEvent.ACTION_UP:
-                Log.e("eee", "333");
-                break;
-        }
-        return super.dispatchTouchEvent(ev);
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-
-        int y = (int) ev.getY();
-
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mTouchY = (int) ev.getY();
-                mFlingHandler.removeCallbacksAndMessages(null);
-                return false;
-            case MotionEvent.ACTION_MOVE:
-                if (isLoading()) {
-                    return false;
-                }
-
-                if (pullDown() && y - mTouchY > mTouchSlop) {
-                    mCurrentState = STATE_DOWN;
-                    return true;
-                }
-
-                if (mHasMore && pullUp() && mTouchY - y > mTouchSlop) {
-                    mCurrentState = STATE_UP;
-                    return true;
-                }
-
-                return false;
-            case MotionEvent.ACTION_UP:
-                return false;
-        }
-
-        return super.onInterceptTouchEvent(ev);
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-
-        int y = (int) event.getY();
-
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                return true;
-            case MotionEvent.ACTION_MOVE:
-                if (mTouchY > y) {
-                    if (mCurrentState == STATE_UP) {
-                        scroll((mTouchY - y) / mDamp, true);
-                    }
-                } else if (mCurrentState == STATE_DOWN) {
-                    scroll((mTouchY - y) / mDamp, true);
-                }
-                break;
-
-            case MotionEvent.ACTION_UP:
-                if (!mIsRefreshing && !mIsLoadingMore) {
-                    int scrollOffset = Math.abs(getScrollY());
-                    if (mCurrentState == STATE_DOWN) {
-                        if (scrollOffset < getHeaderTriggerHeight()) {
-                            restore(true);
-                        } else {
-                            triggerRefresh();
-                        }
-                    } else if (mCurrentState == STATE_UP) {
-                        if (scrollOffset < getFooterTriggerHeight()) {
-                            restore(true);
-                        } else {
-                            triggerLoadMore();
-                        }
-                    } else {
-                        restore(true);
-                    }
-                }
-                mTouchY = 0;
-                break;
-
-            default:
-                break;
-        }
-        return super.onTouchEvent(event);
-    }
-
-    protected boolean pullDown() {
-        return mIsRefresh && canDropDown();
-    }
-
-    protected boolean pullUp() {
-        return mIsLoadMore && canDropUp();
-    }
-
     /**
-     * 可下拉的
-     *
-     * @return
-     */
-    protected boolean canDropDown() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            return view.computeVerticalScrollOffset() <= 0;
-        }
-        return true;
-    }
-
-    /**
-     * 可上拉的
-     *
-     * @return
-     */
-    protected boolean canDropUp() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            return view.computeVerticalScrollOffset() + view.computeVerticalScrollExtent()
-                    >= view.computeVerticalScrollRange();
-        }
-        return false;
-    }
-
-    /**
-     * 显示空布局
+     * 隐藏内容布局，显示空布局
      */
     public void showEmpty() {
-        //显示空布局
-        if (getChildCount() > 3) {
-            getChildAt(3).setVisibility(VISIBLE);
-        }
-        //隐藏内容布局
-        if (getChildCount() > 2) {
-            getChildAt(2).setVisibility(GONE);
+        if (!mIsEmpty) {
+            mIsEmpty = true;
+            //显示空布局
+            if (getChildCount() > 3) {
+                getChildAt(3).setVisibility(VISIBLE);
+            }
+            //隐藏内容布局
+            if (getChildCount() > 2) {
+                getChildAt(2).setVisibility(GONE);
+            }
         }
     }
 
     /**
-     * 隐藏空布局
+     * 隐藏空布局，显示内容布局
      */
     public void hideEmpty() {
-        //隐藏空布局
-        if (getChildCount() > 3) {
-            getChildAt(3).setVisibility(GONE);
-        }
-        //显示内容布局
-        if (getChildCount() > 2) {
-            getChildAt(2).setVisibility(VISIBLE);
-        }
-    }
-
-    @Override
-    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        return isLoading() || !mHasMore;
-    }
-
-    @Override
-    public void onNestedScrollAccepted(View child, View target, int axes) {
-        super.onNestedScrollAccepted(child, target, axes);
-    }
-
-    @Override
-    public void onStopNestedScroll(View child) {
-        super.onStopNestedScroll(child);
-    }
-
-    @Override
-    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-        if (mIsRefreshing) {
-            int height = getHeaderTriggerHeight();
-            int scrollY = getScrollY();
-            if (dyUnconsumed < 0 && scrollY > -height) {
-                int offset = -getScrollY() - height;
-                if (offset < 0) {
-                    scrollBy(0, Math.max(dyUnconsumed, offset));
-                }
+        if (mIsEmpty) {
+            mIsEmpty = false;
+            //隐藏空布局
+            if (getChildCount() > 3) {
+                getChildAt(3).setVisibility(GONE);
+            }
+            //显示内容布局
+            if (getChildCount() > 2) {
+                getChildAt(2).setVisibility(VISIBLE);
             }
         }
-
-        if (mIsLoadingMore || !mHasMore) {
-            int height = getFooterTriggerHeight();
-            int scrollY = getScrollY();
-            if (dyUnconsumed > 0 && scrollY < height) {
-                scrollBy(0, Math.min(dyUnconsumed, height - scrollY));
-            }
-        }
-    }
-
-    @Override
-    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-        if (mIsRefreshing) {
-            int scrollY = getScrollY();
-            if (dy > 0 && scrollY < 0) {
-                scrollBy(0, Math.min(dy, -scrollY));
-                consumed[1] = dy;
-            }
-        }
-
-        if (mIsLoadingMore || !mHasMore) {
-            int scrollY = getScrollY();
-            if (dy < 0 && scrollY > 0) {
-                scrollBy(0, Math.max(dy, -scrollY));
-                consumed[1] = dy;
-            }
-        }
-    }
-
-    @Override
-    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            initFling();
-            mFlingHandler.postDelayed(mFlingChangeListener, FLING_DELAY);
-        }
-        return super.onNestedFling(target, velocityX, velocityY, consumed);
-    }
-
-    @Override
-    public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
-        if (mIsRefreshing && velocityY > 0 && getScrollY() < 0) {
-            restore(false);
-        }
-
-        if ((mIsLoadingMore || !mHasMore) && velocityY < 0 && getScrollY() > 0) {
-            restore(false);
-        }
-        return false;
-    }
-
-    @Override
-    public int getNestedScrollAxes() {
-        return super.getNestedScrollAxes();
-    }
-
-    private void initFling() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            oldOffsetY = view.computeVerticalScrollOffset();
-            mFlingOrientation = ORIENTATION_FLING_NONE;
-        }
-    }
-
-    private boolean computeFlingOffset() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            int offsetY = view.computeVerticalScrollOffset();
-            int interval = Math.abs(offsetY - oldOffsetY);
-            int offset = 0;
-            if (interval > 0) {
-                if (offsetY > oldOffsetY) {
-                    mFlingOrientation = ORIENTATION_FLING_UP;
-                    offset = getScrollBottomOffset();
-                } else if (offsetY < oldOffsetY) {
-                    mFlingOrientation = ORIENTATION_FLING_DOWN;
-                    offset = getScrollTopOffset();
-                }
-                if (interval > 30 && offset < interval) {
-                    if (mIsRefreshing && mFlingOrientation == ORIENTATION_FLING_DOWN) {
-                        int height = getHeaderTriggerHeight();
-                        smoothScroll(getScrollY(), -height, (int) (1.0f * height * FLING_DELAY / interval), false, null);
-                    } else if ((mIsLoadingMore || !mHasMore) && mFlingOrientation == ORIENTATION_FLING_UP) {
-                        int height = getFooterTriggerHeight();
-                        smoothScroll(getScrollY(), height, (int) (1.0f * height * FLING_DELAY / interval), false, null);
-                    }
-                    return false; // 停止fling监听
-                }
-
-                oldOffsetY = offsetY;
-                return true;
-            } else {
-                // 滚动停止
-                return false;
-            }
-        }
-        return false;
-    }
-
-    private int getScrollTopOffset() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            return view.computeVerticalScrollOffset();
-        }
-        return 0;
-    }
-
-    private int getScrollBottomOffset() {
-        if (getChildCount() >= 3 && getChildAt(2) instanceof ScrollingView) {
-            ScrollingView view = (ScrollingView) getChildAt(2);
-            return view.computeVerticalScrollRange() - view.computeVerticalScrollOffset()
-                    - view.computeVerticalScrollExtent();
-        }
-        return 0;
     }
 
     /**
-     * 设置上拉监听器
+     * 设置加载更多的监听，触发加载时回调。
+     * RefreshLayout默认没有启用上拉加载更多的功能，如果设置了OnLoadMoreListener，则自动启用。
      *
      * @param listener
      */
@@ -848,7 +1045,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent {
     }
 
     /**
-     * 设置下拉监听器
+     * 设置刷新监听，触发刷新时回调
      *
      * @param listener
      */
