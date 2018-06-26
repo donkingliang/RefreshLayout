@@ -1,25 +1,37 @@
 package com.donkingliang.refresh;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.drawable.AnimationDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * 下拉刷新头部View
  */
-public class HeaderView extends LinearLayout implements RefreshLayout.OnHeaderStateListener {
+public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeaderStateListener {
 
-    ImageView ivHeaderDownArrow;
-    ImageView ivHeaderLoading;
-    TextView textView;
+    private ImageView ivLoading;
+    private TextView tvState;
+    private TextView tvRefreshTime;
 
-    AnimationDrawable animationDrawable;
+    private AnimationDrawable animationDrawable;
 
-    private boolean isReach = false;
+    private DateFormat mLastUpdateFormat;
+
+    private String headerPulling;
+    private String headerRefreshing;
+    private String headerRelease;
+    private String headerFinish;
+    private String headerUpdate;
 
     public HeaderView(Context context) {
         super(context);
@@ -29,54 +41,52 @@ public class HeaderView extends LinearLayout implements RefreshLayout.OnHeaderSt
 
     private void init(Context context) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View layout = inflater.inflate(R.layout.head_view_layout, this, false);
+        View layout = inflater.inflate(R.layout.header_view_layout, this, false);
         this.addView(layout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         initView(layout);
-        restore();
-        this.setPadding(0, 30, 0, 20);
+
+        Resources resources = context.getResources();
+        headerPulling = resources.getString(R.string.header_pulling);
+        headerRefreshing = resources.getString(R.string.header_refreshing);
+        headerRelease = resources.getString(R.string.header_release);
+        headerFinish = resources.getString(R.string.header_finish);
+        headerUpdate = resources.getString(R.string.header_update);
+
+        mLastUpdateFormat = new SimpleDateFormat(headerUpdate, Locale.getDefault());
+
+        tvRefreshTime.setText(mLastUpdateFormat.format(new Date()));
     }
 
     private void initView(View view) {
-        ivHeaderDownArrow = (ImageView) view.findViewById(R.id.iv_header_down_arrow);
-        ivHeaderLoading = (ImageView) view.findViewById(R.id.iv_header_loading);
-        textView = (TextView) view.findViewById(R.id.tv_header_state);
+        ivLoading = (ImageView) view.findViewById(R.id.iv_loading);
+        tvState = (TextView) view.findViewById(R.id.tv_state);
+        tvRefreshTime = (TextView) view.findViewById(R.id.tv_refresh_time);
     }
 
     @Override
     public void onScrollChange(View head, int scrollOffset, int scrollRatio) {
-        if (scrollRatio == 100 && !isReach) {
-            textView.setText("松开刷新");
-            ivHeaderDownArrow.setRotation(180);
-            isReach = true;
-        } else if (scrollRatio != 100 && isReach) {
-            textView.setText("下拉刷新");
-            ivHeaderDownArrow.setRotation(0);
-            isReach = false;
+        if (scrollRatio < 100) {
+            tvState.setText(headerPulling);
+            ivLoading.setImageResource(R.drawable.icon_down_arrow);
+            ivLoading.setRotation(0);
+        } else {
+            tvState.setText(headerRelease);
+            ivLoading.setImageResource(R.drawable.icon_down_arrow);
+            ivLoading.setRotation(180);
         }
     }
 
     @Override
     public void onRefresh(View headerView) {
-        ivHeaderLoading.setVisibility(VISIBLE);
-        ivHeaderDownArrow.setVisibility(GONE);
-        ivHeaderLoading.setImageDrawable(animationDrawable);
+        tvState.setText(headerRefreshing);
+        ivLoading.setImageDrawable(animationDrawable);
         animationDrawable.start();
-        textView.setText("正在刷新");
     }
 
     @Override
     public void onRetract(View headerView) {
-        restore();
-        animationDrawable.stop();
-        isReach = false;
-    }
-
-    private void restore() {
-        ivHeaderLoading.setVisibility(GONE);
-        ivHeaderDownArrow.setVisibility(VISIBLE);
-        ivHeaderLoading.setImageResource(R.drawable.loading1);
-        ivHeaderDownArrow.setImageResource(R.drawable.icon_down_arrow);
-        ivHeaderDownArrow.setRotation(0);
-        textView.setText("下拉刷新");
+        tvState.setText(headerFinish);
+        tvRefreshTime.setText(mLastUpdateFormat.format(new Date()));
+        ivLoading.setImageBitmap(null);
     }
 }

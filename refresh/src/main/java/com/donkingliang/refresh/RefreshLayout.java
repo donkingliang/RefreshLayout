@@ -264,12 +264,14 @@ public class RefreshLayout extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         //布局头部
         View headerView = getChildAt(0);
-        headerView.layout(getPaddingLeft(), -headerView.getMeasuredHeight(), getPaddingLeft() + headerView.getMeasuredWidth(), 0);
+        headerView.layout(getPaddingLeft(), -headerView.getMeasuredHeight(),
+                getPaddingLeft() + headerView.getMeasuredWidth(), 0);
 
         //布局尾部
         View footerView = getChildAt(1);
-        footerView.layout(getPaddingLeft(), getMeasuredHeight(), getPaddingLeft()
-                + footerView.getMeasuredWidth(), getMeasuredHeight() + footerView.getMeasuredHeight());
+        footerView.layout(getPaddingLeft(), getMeasuredHeight(),
+                getPaddingLeft() + footerView.getMeasuredWidth(),
+                getMeasuredHeight() + footerView.getMeasuredHeight());
 
         int count = getChildCount();
         if (mIsEmpty) {
