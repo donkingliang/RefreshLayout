@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 /**
  * 下拉刷新尾部View
+ * 尾部View必须实现RefreshLayout.OnFooterStateListener，并通过这个接口的回调来更新尾部View的状态。
  */
 public class FooterView extends RelativeLayout implements RefreshLayout.OnFooterStateListener {
 

@@ -16,6 +16,7 @@ import java.util.Locale;
 
 /**
  * 下拉刷新头部View
+ * 头部View必须实现RefreshLayout.OnHeaderStateListener，并通过这个接口的回调来更新头部View的状态。
  */
 public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeaderStateListener {
 

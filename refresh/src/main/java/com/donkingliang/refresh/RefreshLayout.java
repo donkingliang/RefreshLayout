@@ -1085,7 +1085,7 @@ public class RefreshLayout extends ViewGroup {
         void onRefresh(View headerView);
 
         /**
-         * 头部收起
+         * 刷新完成，头部收起
          *
          * @param headerView 头部View
          */
@@ -1094,7 +1094,7 @@ public class RefreshLayout extends ViewGroup {
     }
 
     /**
-     * 头部状态监听器
+     * 尾部状态监听器
      */
     public interface OnFooterStateListener {
 
@@ -1115,7 +1115,7 @@ public class RefreshLayout extends ViewGroup {
         void onRefresh(View footerView);
 
         /**
-         * 尾部收起
+         * 加载完成，尾部收起
          *
          * @param footerView 尾部View
          */

@@ -93,13 +93,13 @@ public class RecyclerViewActivity extends AppCompatActivity {
 //        //自动触发上拉加载更多。只有在启用了上拉加载更多功能并且有更多数据时起作用。
 //        mRefreshLayout.autoLoadMore();
 //
-//        // 是否自动触发加载更多。只有在启用了上拉加载更多功能时起作用。
+//        // 是否自动触发加载更多，在滑动到底部的时候，自动加载更多。只有在启用了上拉加载更多功能时起作用。
 //        mRefreshLayout.setAutoLoadMore(true);
 //
-//        // 隐藏内容布局，显示空布局
+//        // 隐藏内容布局，显示空布局。
 //        mRefreshLayout.showEmpty();
 //
-//        // 隐藏空布局，显示内容布局
+//        // 隐藏空布局，显示内容布局。
 //        mRefreshLayout.hideEmpty();
     }
 }
