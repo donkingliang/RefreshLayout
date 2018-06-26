@@ -26,7 +26,7 @@ public class WebViewActivity extends AppCompatActivity {
         mRefreshLayout = (RefreshLayout) findViewById(R.id.refresh_layout);
 
         WebView webView = (WebView) findViewById(R.id.web_view);
-        webView.loadUrl("http://www.baidu.com");
+        webView.loadUrl("https://github.com/donkingliang");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
