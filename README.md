@@ -1,0 +1,2 @@
+# RefreshLayout
+Android 下拉刷新和上拉加载更多框架。RefreshLayout可以用于包裹任意的View。比如RecyclerView、ScrollView、WebView等实现下拉刷新和上拉加载功能。可以设置空布局和自定义头部尾部View等。
