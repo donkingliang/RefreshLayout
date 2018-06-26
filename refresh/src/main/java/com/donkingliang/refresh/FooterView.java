@@ -9,6 +9,9 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+/**
+ * 下拉刷新尾部View
+ */
 public class FooterView extends RelativeLayout implements RefreshLayout.OnFooterStateListener {
 
     private ImageView ivLoading;

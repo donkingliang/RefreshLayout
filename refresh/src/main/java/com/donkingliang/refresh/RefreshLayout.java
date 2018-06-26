@@ -20,6 +20,9 @@ import java.lang.reflect.Method;
 /**
  * 下拉刷新和上拉加载更多的控件
  * 它用于作为可垂直滑动的容器的直接父布局，实现下拉刷新和上拉加载更多的功能。
+ * <p>
+ * Author:donkingliang  QQ:1043214265
+ * Dat:2018/05/24
  */
 public class RefreshLayout extends ViewGroup {
 
@@ -576,6 +579,7 @@ public class RefreshLayout extends ViewGroup {
 
     /**
      * 处理嵌套滑动。
+     *
      * @param dy 滑动偏移量
      */
     private void nestedPreScroll(int dy) {
@@ -596,6 +600,7 @@ public class RefreshLayout extends ViewGroup {
 
     /**
      * 处理嵌套滑动。
+     *
      * @param dy 滑动偏移量
      */
     private void nestedScroll(int dy) {
