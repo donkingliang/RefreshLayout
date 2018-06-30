@@ -387,7 +387,7 @@ public class RefreshLayout extends ViewGroup {
                 mInterceptTouchEvent = false;
                 return false;
             case MotionEvent.ACTION_MOVE:
-                if (isLoadingOrLoading()) {
+                if (isRefreshingOrLoading()) {
                     return false;
                 }
 
@@ -515,7 +515,7 @@ public class RefreshLayout extends ViewGroup {
      *
      * @return
      */
-    private boolean isLoadingOrLoading() {
+    private boolean isRefreshingOrLoading() {
         return mIsRefreshing || mIsLoadingMore;
     }
 
@@ -574,7 +574,7 @@ public class RefreshLayout extends ViewGroup {
      * @return
      */
     private boolean isNestedScroll() {
-        return isLoadingOrLoading() || !mHasMore;
+        return isRefreshingOrLoading() || !mHasMore;
     }
 
     /**
@@ -829,7 +829,7 @@ public class RefreshLayout extends ViewGroup {
      * 自动触发下拉刷新。只有启用了下拉刷新功能时起作用。
      */
     public void autoRefresh() {
-        if (!mIsRefresh || isLoadingOrLoading()) {
+        if (!mIsRefresh || isRefreshingOrLoading()) {
             return;
         }
         post(new Runnable() {
@@ -850,7 +850,7 @@ public class RefreshLayout extends ViewGroup {
      * 触发下拉刷新
      */
     private void triggerRefresh() {
-        if (!mIsRefresh || isLoadingOrLoading()) {
+        if (!mIsRefresh || isRefreshingOrLoading()) {
             return;
         }
 
@@ -870,7 +870,7 @@ public class RefreshLayout extends ViewGroup {
      * 自动触发上拉加载更多。只有在启用了上拉加载更多功能并且有更多数据时起作用。
      */
     public void autoLoadMore() {
-        if (isLoadingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
+        if (isRefreshingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
             return;
         }
         post(new Runnable() {
@@ -891,7 +891,7 @@ public class RefreshLayout extends ViewGroup {
      * 触发上拉加载更多。
      */
     private void triggerLoadMore() {
-        if (isLoadingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
+        if (isRefreshingOrLoading() || !mHasMore || !mIsLoadMore || mIsEmpty) {
             return;
         }
         mIsLoadingMore = true;
