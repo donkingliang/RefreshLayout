@@ -95,6 +95,12 @@ mRefreshLayout.autoRefresh();
 //自动触发上拉加载更多，在滑动到底部的时候，自动加载更多。只有在启用了上拉加载更多功能并且有更多数据时起作用。
 mRefreshLayout.autoLoadMore();
 
+//通知刷新完成
+mRefreshLayout.finishRefresh();
+
+//通知加载完成
+mRefreshLayout.finishLoadMore();
+
 // 是否自动触发加载更多。只有在启用了上拉加载更多功能时起作用。
 mRefreshLayout.setAutoLoadMore(true);
 
