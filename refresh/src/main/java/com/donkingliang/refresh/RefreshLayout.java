@@ -798,8 +798,6 @@ public class RefreshLayout extends ViewGroup {
                 postDelayed(new Runnable() {
                     @Override
                     public void run() {
-
-                        if (mHasMore) {
                             if (getScrollBottomOffset() > 0) {
                                 // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
                                 if (getChildCount() >= 3) {
@@ -812,13 +810,10 @@ public class RefreshLayout extends ViewGroup {
                                     }
                                 }
                                 scroll(0, false);
-                            } else {
+                            } else if (!mHasMore){
                                 // 如果没有新的内容加载出来，就平滑收起尾部。
                                 smoothScroll(getScrollY(), 0, 200, false, null);
                             }
-                        } else {
-                            //如果没有更多数据，就继续显示尾部，不需要收起。
-                        }
                     }
                 }, 500);
             }
