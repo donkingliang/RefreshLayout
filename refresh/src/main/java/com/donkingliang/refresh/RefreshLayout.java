@@ -784,8 +784,26 @@ public class RefreshLayout extends ViewGroup {
 
     /**
      * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View)}方法
+     * 请使用{@link #finishLoadMore(boolean)}
      */
+    @Deprecated
+    //不推荐使用这个方法 因为同时调用它和hasMore(boolean)两个方法时，尾部无法显示“加载完成”的提示。推荐使用finishLoadMore(boolean hasMore);
     public void finishLoadMore() {
+        //为了处理先调用finishLoadMore()，后调用hasMore(boolean)的情况;延时调用finishLoadMore(mHasMore);
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                finishLoadMore(mHasMore);
+            }
+        }, 0);
+    }
+
+    /**
+     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View)}方法
+     *
+     * @param hasMore 是否还有更多数据
+     */
+    public void finishLoadMore(final boolean hasMore) {
         if (mIsLoadingMore) {
             mIsLoadingMore = false;
             mCurrentState = STATE_NOT;
@@ -798,22 +816,22 @@ public class RefreshLayout extends ViewGroup {
                 postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                            if (getScrollBottomOffset() > 0) {
-                                // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
-                                if (getChildCount() >= 3) {
-                                    View v = getChildAt(2);
-                                    if (v instanceof AbsListView) {
-                                        AbsListView listView = (AbsListView) v;
-                                        listView.smoothScrollBy(getScrollY(), 0);
-                                    } else {
-                                        v.scrollBy(0, getScrollY());
-                                    }
+                        hasMore(hasMore);
+                        if (getScrollBottomOffset() > 0) {
+                            // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
+                            if (getChildCount() >= 3) {
+                                View v = getChildAt(2);
+                                if (v instanceof AbsListView) {
+                                    AbsListView listView = (AbsListView) v;
+                                    listView.smoothScrollBy(getScrollY(), 0);
+                                } else {
+                                    v.scrollBy(0, getScrollY());
                                 }
-                                scroll(0, false);
-                            } else if (!mHasMore){
-                                // 如果没有新的内容加载出来，就平滑收起尾部。
-                                smoothScroll(getScrollY(), 0, 200, false, null);
                             }
+                            scroll(0, false);
+                        } else if (mHasMore) {
+                            smoothScroll(getScrollY(), 0, 200, false, null);
+                        }
                     }
                 }, 500);
             }

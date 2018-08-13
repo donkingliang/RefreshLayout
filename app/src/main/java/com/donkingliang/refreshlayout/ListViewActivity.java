@@ -72,14 +72,13 @@ public class ListViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        //通知加载完成
-                        mRefreshLayout.finishLoadMore();
-
                         if (mAdapter.getCount() < 50) {
                             mAdapter.addAll(getData(10, mAdapter.getCount()));
+                            //通知加载完成
+                            mRefreshLayout.finishLoadMore(true);
                         } else {
-                            //是否还有更多数据
-                            mRefreshLayout.hasMore(false);
+                            //通知加载完成
+                            mRefreshLayout.finishLoadMore(false);
                         }
                     }
                 }, 3000);
