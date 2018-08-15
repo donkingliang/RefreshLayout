@@ -7,6 +7,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -131,6 +132,8 @@ public class RefreshLayout extends ViewGroup {
         public void run() {
             if (listenScrollChange()) {
                 mScrollHandler.postDelayed(mScrollChangeListener, SCROLL_DELAY);
+            } else {
+                mFlingOrientation = ORIENTATION_FLING_NONE;
             }
         }
     };
@@ -343,16 +346,28 @@ public class RefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_MOVE:
                 int newY = (int) ev.getY();
                 if (isNestedScroll()) {
+                    Log.e("eee", "newY:" + newY + " oldY:" + oldY);
                     if ((canPullDown() && newY > oldY)
                             || (canPullUp() && newY < oldY)) {
+                        Log.e("eee", "2222");
                         nestedScroll(oldY - newY);
                     }
 
                     if ((getScrollY() > 0 && newY > oldY)
                             || (getScrollY() < 0 && newY < oldY)) {
+                        Log.e("eee", "3333");
                         nestedPreScroll(oldY - newY);
                     }
+                } else {
+                    Log.e("eee", "1111");
                 }
+
+                if (newY > oldY) {
+                    mFlingOrientation = ORIENTATION_FLING_UP;
+                } else if (newY < oldY) {
+                    mFlingOrientation = ORIENTATION_FLING_DOWN;
+                }
+
                 oldY = newY;
 
                 break;
@@ -630,9 +645,11 @@ public class RefreshLayout extends ViewGroup {
     private void initScrollListen() {
         if (getChildCount() >= 3) {
             oldOffsetY = computeVerticalScrollOffset(getChildAt(2));
-            mFlingOrientation = ORIENTATION_FLING_NONE;
         }
     }
+
+    int scrollVelocity = 0;
+
 
     /**
      * 监听手指松开时，屏幕的滑动状态
@@ -641,38 +658,47 @@ public class RefreshLayout extends ViewGroup {
      */
     private boolean listenScrollChange() {
         if (getChildCount() >= 3) {
-            int offsetY = computeVerticalScrollOffset(getChildAt(2));
+            int offsetY = getScrollTopOffset();
             int interval = Math.abs(offsetY - oldOffsetY);
-            int offset = 0;
             if (interval > 0) {
-                if (offsetY > oldOffsetY) {
-                    mFlingOrientation = ORIENTATION_FLING_UP;
-                    offset = getScrollBottomOffset();
-                } else if (offsetY < oldOffsetY) {
-                    mFlingOrientation = ORIENTATION_FLING_DOWN;
-                    offset = getScrollTopOffset();
-                }
-                if (interval > 30 && offset < interval) {
-                    if (mIsRefreshing && mFlingOrientation == ORIENTATION_FLING_DOWN) {
-                        int height = getHeaderTriggerHeight();
-                        smoothScroll(getScrollY(), -height, (int) (1.0f * height * SCROLL_DELAY / interval), false, null);
-                        return false; // 停止fling监听
-                    } else if ((mIsLoadingMore || !mHasMore) && mFlingOrientation == ORIENTATION_FLING_UP) {
-                        int height = getFooterTriggerHeight();
-                        smoothScroll(getScrollY(), height, (int) (1.0f * height * SCROLL_DELAY / interval), false, null);
-                        return false; // 停止fling监听
+                scrollVelocity = interval;
+                oldOffsetY = offsetY;
+                if (isNestedScroll()) {
+                    if (canPullDown() && mFlingOrientation == ORIENTATION_FLING_UP) {
+                        nestedScroll(-scrollVelocity);
+                    } else if (canPullUp() && mFlingOrientation == ORIENTATION_FLING_DOWN) {
+                        nestedScroll(scrollVelocity);
+                    }
+
+                    if (getScrollY() > 0 && mFlingOrientation == ORIENTATION_FLING_UP) {
+                        nestedPreScroll(-scrollVelocity);
+                    } else if (getScrollY() < 0 && mFlingOrientation == ORIENTATION_FLING_DOWN) {
+                        nestedPreScroll(scrollVelocity);
                     }
                 }
-
-                oldOffsetY = offsetY;
                 return true;
             } else {
                 // 滑动停止
 
                 //滑动停止时，如果已经滑动到底部，自动触发加载更多
-                if (mAutoLoadMore && getScrollBottomOffset() == 0) {
+                if (mFlingOrientation == ORIENTATION_FLING_DOWN && mAutoLoadMore && pullLoadMore()) {
                     autoLoadMore();
+                    return false;
                 }
+
+                if (scrollVelocity > 30) {
+                    if (canPullDown() && mIsRefreshing && mFlingOrientation == ORIENTATION_FLING_UP) {
+                        int height = getHeaderTriggerHeight();
+                        smoothScroll(getScrollY(), -height, (int) (1.0f * height * SCROLL_DELAY / scrollVelocity),
+                                false, null);
+                    } else if ((mIsLoadingMore || !mHasMore) && canPullUp()
+                            && mFlingOrientation == ORIENTATION_FLING_DOWN) {
+                        int height = getFooterTriggerHeight();
+                        smoothScroll(getScrollY(), height, (int) (1.0f * height * SCROLL_DELAY / scrollVelocity),
+                                false, null);
+                    }
+                }
+                scrollVelocity = 0;
                 return false;
             }
         }
@@ -765,20 +791,18 @@ public class RefreshLayout extends ViewGroup {
      */
     public void finishRefresh() {
         if (mIsRefreshing) {
-            mIsRefreshing = false;
             mCurrentState = STATE_NOT;
             if (mOnHeaderStateListener != null) {
                 mOnHeaderStateListener.onRetract(mHeaderView);
             }
-            if (getScrollY() < 0) {
-                postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        //平滑收起头部。
-                        smoothScroll(getScrollY(), 0, 200, false, null);
-                    }
-                }, 500);
-            }
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    //平滑收起头部。
+                    smoothScroll(getScrollY(), 0, 200, false, null);
+                    mIsRefreshing = false;
+                }
+            }, 500);
         }
     }
 
@@ -805,36 +829,34 @@ public class RefreshLayout extends ViewGroup {
      */
     public void finishLoadMore(final boolean hasMore) {
         if (mIsLoadingMore) {
-            mIsLoadingMore = false;
             mCurrentState = STATE_NOT;
             if (mOnFooterStateListener != null) {
                 mOnFooterStateListener.onRetract(mFooterView);
             }
 
             // 处理尾部的收起。
-            if (getScrollY() > 0) {
-                postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        hasMore(hasMore);
-                        if (getScrollBottomOffset() > 0) {
-                            // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
-                            if (getChildCount() >= 3) {
-                                View v = getChildAt(2);
-                                if (v instanceof AbsListView) {
-                                    AbsListView listView = (AbsListView) v;
-                                    listView.smoothScrollBy(getScrollY(), 0);
-                                } else {
-                                    v.scrollBy(0, getScrollY());
-                                }
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mIsLoadingMore = false;
+                    hasMore(hasMore);
+                    if (getScrollBottomOffset() > 0) {
+                        // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
+                        if (getChildCount() >= 3) {
+                            View v = getChildAt(2);
+                            if (v instanceof AbsListView) {
+                                AbsListView listView = (AbsListView) v;
+                                listView.smoothScrollBy(getScrollY(), 0);
+                            } else {
+                                v.scrollBy(0, getScrollY());
                             }
-                            scroll(0, false);
-                        } else if (mHasMore) {
-                            smoothScroll(getScrollY(), 0, 200, false, null);
                         }
+                        scroll(0, false);
+                    } else if (mHasMore) {
+                        smoothScroll(getScrollY(), 0, 200, false, null);
                     }
-                }, 500);
-            }
+                }
+            }, 500);
         }
     }
 
