@@ -346,20 +346,15 @@ public class RefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_MOVE:
                 int newY = (int) ev.getY();
                 if (isNestedScroll()) {
-                    Log.e("eee", "newY:" + newY + " oldY:" + oldY);
                     if ((canPullDown() && newY > oldY)
                             || (canPullUp() && newY < oldY)) {
-                        Log.e("eee", "2222");
                         nestedScroll(oldY - newY);
                     }
 
                     if ((getScrollY() > 0 && newY > oldY)
                             || (getScrollY() < 0 && newY < oldY)) {
-                        Log.e("eee", "3333");
                         nestedPreScroll(oldY - newY);
                     }
-                } else {
-                    Log.e("eee", "1111");
                 }
 
                 if (newY > oldY) {
