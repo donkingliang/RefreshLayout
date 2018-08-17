@@ -7,6 +7,8 @@ import com.donkingliang.refresh.FooterView;
 import com.donkingliang.refresh.HeaderView;
 import com.donkingliang.refresh.RefreshLayout;
 
+import java.util.Date;
+
 /**
  * Depiction:
  * Author:lry
@@ -15,6 +17,7 @@ import com.donkingliang.refresh.RefreshLayout;
 public class ScrollViewActivity extends AppCompatActivity {
 
     private RefreshLayout mRefreshLayout;
+    private static final String S_REFRESH_TIME = "S_Refresh_Time";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,7 +27,12 @@ public class ScrollViewActivity extends AppCompatActivity {
         mRefreshLayout = (RefreshLayout) findViewById(R.id.refresh_layout);
 
         //设置头部(刷新)
-        mRefreshLayout.setHeaderView(new HeaderView(this));
+        HeaderView headerView = new HeaderView(this);
+        long refreshTime = SPUtil.getRefreshTime(S_REFRESH_TIME);
+        if (refreshTime > 0) {
+            headerView.setRefreshTime(new Date(refreshTime));
+        }
+        mRefreshLayout.setHeaderView(headerView);
 
         //设置刷新监听，触发刷新时回调
         mRefreshLayout.setOnRefreshListener(new RefreshLayout.OnRefreshListener() {
@@ -34,6 +42,7 @@ public class ScrollViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        SPUtil.writeRefreshTime(S_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
                         mRefreshLayout.finishRefresh();
                     }

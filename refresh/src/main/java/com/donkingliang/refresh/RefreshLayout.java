@@ -454,8 +454,6 @@ public class RefreshLayout extends ViewGroup {
                         } else {
                             triggerLoadMore();
                         }
-                    } else {
-                        restore(true);
                     }
                 }
                 break;

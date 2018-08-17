@@ -13,6 +13,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        SPUtil.initSharedPreferences(this);
+
         findViewById(R.id.btn_recycler_view).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -7,6 +7,8 @@ import com.donkingliang.refresh.FooterView;
 import com.donkingliang.refresh.HeaderView;
 import com.donkingliang.refresh.RefreshLayout;
 
+import java.util.Date;
+
 /**
  * Depiction:
  * Author:lry
@@ -15,7 +17,7 @@ import com.donkingliang.refresh.RefreshLayout;
 public class NestedScrollViewActivity extends AppCompatActivity {
 
     private RefreshLayout mRefreshLayout;
-
+    private static final String NS_REFRESH_TIME = "NS_Refresh_Time";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,7 +26,12 @@ public class NestedScrollViewActivity extends AppCompatActivity {
         mRefreshLayout = (RefreshLayout) findViewById(R.id.refresh_layout);
 
         //设置头部(刷新)
-        mRefreshLayout.setHeaderView(new HeaderView(this));
+        HeaderView headerView = new HeaderView(this);
+        long refreshTime = SPUtil.getRefreshTime(NS_REFRESH_TIME);
+        if (refreshTime > 0) {
+            headerView.setRefreshTime(new Date(refreshTime));
+        }
+        mRefreshLayout.setHeaderView(headerView);
 
         //设置刷新监听，触发刷新时回调
         mRefreshLayout.setOnRefreshListener(new RefreshLayout.OnRefreshListener() {
@@ -34,6 +41,7 @@ public class NestedScrollViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        SPUtil.writeRefreshTime(NS_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
                         mRefreshLayout.finishRefresh();
                     }

@@ -10,6 +10,8 @@ import com.donkingliang.refresh.HeaderView;
 import com.donkingliang.refresh.RefreshLayout;
 import com.donkingliang.refreshlayout.adapter.RecyclerAdapter;
 
+import java.util.Date;
+
 /**
  * Depiction:
  * Author:lry
@@ -20,6 +22,8 @@ public class RecyclerViewActivity extends AppCompatActivity {
     private RefreshLayout mRefreshLayout;
     private RecyclerView mRecyclerView;
     private RecyclerAdapter mAdapter;
+
+    private static final String RV_REFRESH_TIME = "RV_Refresh_Time";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +38,12 @@ public class RecyclerViewActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mAdapter);
 
         //设置头部(刷新)
-        mRefreshLayout.setHeaderView(new HeaderView(this));
+        HeaderView headerView = new HeaderView(this);
+        long refreshTime = SPUtil.getRefreshTime(RV_REFRESH_TIME);
+        if (refreshTime > 0) {
+            headerView.setRefreshTime(new Date(refreshTime));
+        }
+        mRefreshLayout.setHeaderView(headerView);
 
         //设置尾部(加载更新)
         mRefreshLayout.setFooterView(new FooterView(this));
@@ -47,6 +56,7 @@ public class RecyclerViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        SPUtil.writeRefreshTime(RV_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
                         mRefreshLayout.finishRefresh();
                         //是否还有更多数据

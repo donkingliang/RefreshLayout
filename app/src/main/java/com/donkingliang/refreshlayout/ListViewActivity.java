@@ -15,6 +15,7 @@ import com.donkingliang.refresh.RefreshLayout;
 import com.donkingliang.refreshlayout.adapter.RecyclerAdapter;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -28,6 +29,8 @@ public class ListViewActivity extends AppCompatActivity {
     private ListView mListView;
     private ArrayAdapter<String> mAdapter;
 
+    private static final String LV_REFRESH_TIME = "LV_Refresh_Time";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +42,12 @@ public class ListViewActivity extends AppCompatActivity {
         mListView.setAdapter(mAdapter);
 
         //设置头部(刷新)
-        mRefreshLayout.setHeaderView(new HeaderView(this));
+        HeaderView headerView = new HeaderView(this);
+        long refreshTime = SPUtil.getRefreshTime(LV_REFRESH_TIME);
+        if (refreshTime > 0) {
+            headerView.setRefreshTime(new Date(refreshTime));
+        }
+        mRefreshLayout.setHeaderView(headerView);
 
         //设置尾部(加载更新)
         mRefreshLayout.setFooterView(new FooterView(this));
@@ -52,6 +60,7 @@ public class ListViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        SPUtil.writeRefreshTime(LV_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
                         mRefreshLayout.finishRefresh();
                         //是否还有更多数据

@@ -64,6 +64,10 @@ public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeader
         tvRefreshTime = (TextView) view.findViewById(R.id.tv_refresh_time);
     }
 
+    public void setRefreshTime(Date date) {
+        tvRefreshTime.setText(mLastUpdateFormat.format(date));
+    }
+
     @Override
     public void onScrollChange(View head, int scrollOffset, int scrollRatio) {
         if (scrollRatio < 100) {
