@@ -87,7 +87,7 @@ public class ListViewActivity extends AppCompatActivity {
                             mRefreshLayout.finishLoadMore(true,true);
                         } else {
                             //通知加载完成
-                            mRefreshLayout.finishLoadMore(false,true);
+                            mRefreshLayout.finishLoadMore(true,false);
                         }
                     }
                 }, 3000);

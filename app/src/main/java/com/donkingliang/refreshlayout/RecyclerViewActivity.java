@@ -80,7 +80,7 @@ public class RecyclerViewActivity extends AppCompatActivity {
                             mAdapter.setCount(mAdapter.getItemCount() + 10);
                             mRefreshLayout.finishLoadMore(true, true);
                         } else {
-                            mRefreshLayout.finishLoadMore(false, true);
+                            mRefreshLayout.finishLoadMore(true, false);
                         }
                     }
                 }, 3000);

@@ -812,7 +812,7 @@ public class RefreshLayout extends ViewGroup {
         postDelayed(new Runnable() {
             @Override
             public void run() {
-                finishLoadMore(mHasMore, true);
+                finishLoadMore(true, mHasMore);
             }
         }, 0);
     }
@@ -820,10 +820,10 @@ public class RefreshLayout extends ViewGroup {
     /**
      * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View, boolean)}方法
      *
-     * @param hasMore   是否还有更多数据
      * @param isSuccess 是否加载成功
+     * @param hasMore   是否还有更多数据
      */
-    public void finishLoadMore(final boolean hasMore, boolean isSuccess) {
+    public void finishLoadMore(boolean isSuccess, final boolean hasMore) {
         if (mIsLoadingMore) {
             mCurrentState = STATE_NOT;
             if (mOnFooterStateListener != null) {
