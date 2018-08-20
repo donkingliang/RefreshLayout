@@ -20,7 +20,7 @@ Android 下拉刷新和上拉加载更多框架。RefreshLayout可以用于嵌�
 在Module的build.gradle在添加以下代码
 
 ```
-  implementation 'com.github.donkingliang:RefreshLayout:1.0.5'
+  implementation 'com.github.donkingliang:RefreshLayout:1.1.0'
 ```
 
 **2、编写布局**
@@ -93,11 +93,11 @@ mRefreshLayout.autoRefresh();
 //自动触发上拉加载更多，在滑动到底部的时候，自动加载更多。只有在启用了上拉加载更多功能并且有更多数据时起作用。
 mRefreshLayout.autoLoadMore();
 
-//通知刷新完成
-mRefreshLayout.finishRefresh();
+//通知刷新完成，isSuccess是否刷新成功
+mRefreshLayout.finishRefresh(boolean isSuccess);
 
-//通知加载完成
-mRefreshLayout.finishLoadMore(boolean hasMore);
+//通知加载完成，isSuccess是否加载成功，hasMore是否还有更多数据
+mRefreshLayout.finishLoadMore(boolean isSuccess,boolean hasMore);
 
 // 是否自动触发加载更多。只有在启用了上拉加载更多功能时起作用。
 mRefreshLayout.setAutoLoadMore(true);
@@ -155,9 +155,10 @@ public class MyHeaderView extends LinearLayout implements RefreshLayout.OnHeader
      * 刷新完成，头部收起
      *
      * @param headerView 头部View
+     @param isSuccess  是否刷新成功
      */
     @Override
-    public void onRetract(View headerView) {
+    public void onRetract(View headerView, boolean isSuccess) {
     }
 }
 ```
@@ -202,9 +203,10 @@ public class MyFooterView extends LinearLayout implements RefreshLayout.OnFooter
      * 加载完成，尾部收起
      *
      * @param footerView 尾部View
+     @param isSuccess  是否加载成功
      */
     @Override
-    public void onRetract(View footerView) {
+    public void onRetract(View footerView, boolean isSuccess) {
     }
 
     /**
