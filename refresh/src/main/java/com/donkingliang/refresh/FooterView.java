@@ -25,7 +25,8 @@ public class FooterView extends RelativeLayout implements RefreshLayout.OnFooter
     private String footerPulling;
     private String footerRelease;
     private String footerLoading;
-    private String footerFinish;
+    private String footerLoadingFinish;
+    private String footerLoadingFailure;
     private String footerNothing;
 
     public FooterView(Context context) {
@@ -44,7 +45,8 @@ public class FooterView extends RelativeLayout implements RefreshLayout.OnFooter
         footerPulling = resources.getString(R.string.footer_pulling);
         footerRelease = resources.getString(R.string.footer_release);
         footerLoading = resources.getString(R.string.footer_loading);
-        footerFinish = resources.getString(R.string.footer_finish);
+        footerLoadingFinish = resources.getString(R.string.footer_loading_finish);
+        footerLoadingFailure = resources.getString(R.string.footer_loading_failure);
         footerNothing = resources.getString(R.string.footer_nothing);
     }
 
@@ -78,9 +80,9 @@ public class FooterView extends RelativeLayout implements RefreshLayout.OnFooter
     }
 
     @Override
-    public void onRetract(View footerView) {
+    public void onRetract(View footerView, boolean isSuccess) {
         if (hasMore) {
-            tvState.setText(footerFinish);
+            tvState.setText(isSuccess ? footerLoadingFinish : footerLoadingFailure);
             ivLoading.setImageBitmap(null);
         }
     }

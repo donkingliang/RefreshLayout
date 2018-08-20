@@ -56,9 +56,9 @@ public class RecyclerViewActivity extends AppCompatActivity {
                 mRefreshLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        SPUtil.writeRefreshTime(RV_REFRESH_TIME,new Date().getTime());
+                        SPUtil.writeRefreshTime(RV_REFRESH_TIME, new Date().getTime());
                         //通知刷新完成
-                        mRefreshLayout.finishRefresh();
+                        mRefreshLayout.finishRefresh(true);
                         //是否还有更多数据
                         mRefreshLayout.hasMore(true);
                         mAdapter.setCount(20);
@@ -78,9 +78,9 @@ public class RecyclerViewActivity extends AppCompatActivity {
                         //通知加载完成
                         if (mAdapter.getItemCount() < 50) {
                             mAdapter.setCount(mAdapter.getItemCount() + 10);
-                            mRefreshLayout.finishLoadMore(true);
+                            mRefreshLayout.finishLoadMore(true, true);
                         } else {
-                            mRefreshLayout.finishLoadMore(false);
+                            mRefreshLayout.finishLoadMore(false, true);
                         }
                     }
                 }, 3000);

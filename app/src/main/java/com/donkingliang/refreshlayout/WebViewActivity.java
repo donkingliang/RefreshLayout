@@ -56,7 +56,7 @@ public class WebViewActivity extends AppCompatActivity {
                     public void run() {
                         SPUtil.writeRefreshTime(WV_REFRESH_TIME, new Date().getTime());
                         //通知刷新完成
-                        mRefreshLayout.finishRefresh();
+                        mRefreshLayout.finishRefresh(true);
                     }
                 }, 3000);
             }

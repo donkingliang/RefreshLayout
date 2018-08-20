@@ -62,7 +62,7 @@ public class ListViewActivity extends AppCompatActivity {
                     public void run() {
                         SPUtil.writeRefreshTime(LV_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
-                        mRefreshLayout.finishRefresh();
+                        mRefreshLayout.finishRefresh(true);
                         //是否还有更多数据
                         mRefreshLayout.hasMore(true);
 
@@ -84,10 +84,10 @@ public class ListViewActivity extends AppCompatActivity {
                         if (mAdapter.getCount() < 50) {
                             mAdapter.addAll(getData(10, mAdapter.getCount()));
                             //通知加载完成
-                            mRefreshLayout.finishLoadMore(true);
+                            mRefreshLayout.finishLoadMore(true,true);
                         } else {
                             //通知加载完成
-                            mRefreshLayout.finishLoadMore(false);
+                            mRefreshLayout.finishLoadMore(false,true);
                         }
                     }
                 }, 3000);

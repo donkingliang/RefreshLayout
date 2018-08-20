@@ -4,12 +4,14 @@
     <string name="header_pulling">下拉可以刷新</string>
     <string name="header_refreshing">正在刷新…</string>
     <string name="header_release">释放立即刷新</string>
-    <string name="header_finish">刷新完成</string>
+    <string name="header_refresh_finish">刷新完成</string>
+    <string name="header_refresh_failure">刷新失败</string>
     <string name="header_update">上次更新 M-d HH:mm</string>
 
     <string name="footer_pulling">上拉加载更多</string>
     <string name="footer_release">释放立即加载</string>
     <string name="footer_loading">正在加载…</string>
-    <string name="footer_finish">加载完成</string>
+    <string name="footer_loading_finish">加载完成</string>
+    <string name="footer_loading_failure">加载失败</string>
     <string name="footer_nothing">没有更多数据了</string>
 </resources>

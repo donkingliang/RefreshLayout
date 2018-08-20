@@ -43,7 +43,7 @@ public class NestedScrollViewActivity extends AppCompatActivity {
                     public void run() {
                         SPUtil.writeRefreshTime(NS_REFRESH_TIME,new Date().getTime());
                         //通知刷新完成
-                        mRefreshLayout.finishRefresh();
+                        mRefreshLayout.finishRefresh(true);
                     }
                 }, 3000);
             }

@@ -780,13 +780,15 @@ public class RefreshLayout extends ViewGroup {
     }
 
     /**
-     * 通知刷新完成。它会回调{@link OnHeaderStateListener#onRetract(View)}方法
+     * 通知刷新完成。它会回调{@link OnHeaderStateListener#onRetract(View, boolean)}方法
+     *
+     * @param isSuccess 是否刷新成功
      */
-    public void finishRefresh() {
+    public void finishRefresh(boolean isSuccess) {
         if (mIsRefreshing) {
             mCurrentState = STATE_NOT;
             if (mOnHeaderStateListener != null) {
-                mOnHeaderStateListener.onRetract(mHeaderView);
+                mOnHeaderStateListener.onRetract(mHeaderView, isSuccess);
             }
             postDelayed(new Runnable() {
                 @Override
@@ -800,8 +802,8 @@ public class RefreshLayout extends ViewGroup {
     }
 
     /**
-     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View)}方法
-     * 请使用{@link #finishLoadMore(boolean)}
+     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View, boolean)}方法
+     * 请使用{@link #finishLoadMore(boolean, boolean)}
      */
     @Deprecated
     //不推荐使用这个方法 因为同时调用它和hasMore(boolean)两个方法时，尾部无法显示“加载完成”的提示。推荐使用finishLoadMore(boolean hasMore);
@@ -810,21 +812,22 @@ public class RefreshLayout extends ViewGroup {
         postDelayed(new Runnable() {
             @Override
             public void run() {
-                finishLoadMore(mHasMore);
+                finishLoadMore(mHasMore, true);
             }
         }, 0);
     }
 
     /**
-     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View)}方法
+     * 通知加载更多完成。它会回调{@link OnFooterStateListener#onRetract(View, boolean)}方法
      *
-     * @param hasMore 是否还有更多数据
+     * @param hasMore   是否还有更多数据
+     * @param isSuccess 是否加载成功
      */
-    public void finishLoadMore(final boolean hasMore) {
+    public void finishLoadMore(final boolean hasMore, boolean isSuccess) {
         if (mIsLoadingMore) {
             mCurrentState = STATE_NOT;
             if (mOnFooterStateListener != null) {
-                mOnFooterStateListener.onRetract(mFooterView);
+                mOnFooterStateListener.onRetract(mFooterView, isSuccess);
             }
 
             // 处理尾部的收起。
@@ -1116,8 +1119,9 @@ public class RefreshLayout extends ViewGroup {
          * 刷新完成，头部收起
          *
          * @param headerView 头部View
+         * @param isSuccess  是否刷新成功
          */
-        void onRetract(View headerView);
+        void onRetract(View headerView, boolean isSuccess);
 
     }
 
@@ -1146,8 +1150,9 @@ public class RefreshLayout extends ViewGroup {
          * 加载完成，尾部收起
          *
          * @param footerView 尾部View
+         * @param isSuccess  是否加载成功
          */
-        void onRetract(View footerView);
+        void onRetract(View footerView, boolean isSuccess);
 
         /**
          * 是否还有更多(是否可以加载下一页)

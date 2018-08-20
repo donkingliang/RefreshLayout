@@ -31,7 +31,8 @@ public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeader
     private String headerPulling;
     private String headerRefreshing;
     private String headerRelease;
-    private String headerFinish;
+    private String headerRefreshFinish;
+    private String headerRefreshFailure;
     private String headerUpdate;
 
     public HeaderView(Context context) {
@@ -50,7 +51,8 @@ public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeader
         headerPulling = resources.getString(R.string.header_pulling);
         headerRefreshing = resources.getString(R.string.header_refreshing);
         headerRelease = resources.getString(R.string.header_release);
-        headerFinish = resources.getString(R.string.header_finish);
+        headerRefreshFinish = resources.getString(R.string.header_refresh_finish);
+        headerRefreshFailure = resources.getString(R.string.header_refresh_failure);
         headerUpdate = resources.getString(R.string.header_update);
 
         mLastUpdateFormat = new SimpleDateFormat(headerUpdate, Locale.getDefault());
@@ -89,9 +91,13 @@ public class HeaderView extends RelativeLayout implements RefreshLayout.OnHeader
     }
 
     @Override
-    public void onRetract(View headerView) {
-        tvState.setText(headerFinish);
-        tvRefreshTime.setText(mLastUpdateFormat.format(new Date()));
+    public void onRetract(View headerView, boolean isSuccess) {
+        if (isSuccess){
+            tvState.setText(headerRefreshFinish);
+            tvRefreshTime.setText(mLastUpdateFormat.format(new Date()));
+        } else {
+            tvState.setText(headerRefreshFailure);
+        }
         ivLoading.setImageBitmap(null);
     }
 }
