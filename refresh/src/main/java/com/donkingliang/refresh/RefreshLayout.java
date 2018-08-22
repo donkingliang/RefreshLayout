@@ -790,15 +790,15 @@ public class RefreshLayout extends ViewGroup {
             if (mOnHeaderStateListener != null) {
                 mOnHeaderStateListener.onRetract(mHeaderView, isSuccess);
             }
-            postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    //平滑收起头部。
-                    smoothScroll(getScrollY(), 0, 200, false, null);
-                    mIsRefreshing = false;
-                }
-            }, 500);
         }
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                //平滑收起头部。
+                smoothScroll(getScrollY(), 0, 200, false, null);
+                mIsRefreshing = false;
+            }
+        }, 500);
     }
 
     /**
@@ -829,31 +829,30 @@ public class RefreshLayout extends ViewGroup {
             if (mOnFooterStateListener != null) {
                 mOnFooterStateListener.onRetract(mFooterView, isSuccess);
             }
-
-            // 处理尾部的收起。
-            postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mIsLoadingMore = false;
-                    hasMore(hasMore);
-                    if (getScrollBottomOffset() > 0) {
-                        // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
-                        if (getChildCount() >= 3) {
-                            View v = getChildAt(2);
-                            if (v instanceof AbsListView) {
-                                AbsListView listView = (AbsListView) v;
-                                listView.smoothScrollBy(getScrollY(), 0);
-                            } else {
-                                v.scrollBy(0, getScrollY());
-                            }
-                        }
-                        scroll(0, false);
-                    } else if (mHasMore) {
-                        smoothScroll(getScrollY(), 0, 200, false, null);
-                    }
-                }
-            }, 500);
         }
+        // 处理尾部的收起。
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mIsLoadingMore = false;
+                hasMore(hasMore);
+                if (getScrollBottomOffset() > 0) {
+                    // 如果有新的内容加载出来，就收起尾部，并把新内容显示出来。。
+                    if (getChildCount() >= 3) {
+                        View v = getChildAt(2);
+                        if (v instanceof AbsListView) {
+                            AbsListView listView = (AbsListView) v;
+                            listView.smoothScrollBy(getScrollY(), 0);
+                        } else {
+                            v.scrollBy(0, getScrollY());
+                        }
+                    }
+                    scroll(0, false);
+                } else if (mHasMore) {
+                    smoothScroll(getScrollY(), 0, 200, false, null);
+                }
+            }
+        }, 500);
     }
 
     /**
