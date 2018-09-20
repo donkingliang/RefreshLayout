@@ -20,7 +20,7 @@ Android 下拉刷新和上拉加载更多框架。RefreshLayout可以用于嵌�
 在Module的build.gradle在添加以下代码
 
 ```
-  implementation 'com.github.donkingliang:RefreshLayout:1.1.0'
+  implementation 'com.github.donkingliang:RefreshLayout:1.1.2'
 ```
 
 **2、编写布局**
