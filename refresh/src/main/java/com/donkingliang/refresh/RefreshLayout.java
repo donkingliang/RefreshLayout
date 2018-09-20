@@ -248,17 +248,19 @@ public class RefreshLayout extends ViewGroup {
             //空布局容器
             if (count > 3) {
                 View emptyView = getChildAt(3);
-                measureChild(emptyView, widthMeasureSpec, heightMeasureSpec);
-                contentHeight = emptyView.getMeasuredHeight();
-                contentWidth = emptyView.getMeasuredWidth();
+                measureChildWithMargins(emptyView, widthMeasureSpec, 0, heightMeasureSpec, 0);
+                MarginLayoutParams emptyLp = (MarginLayoutParams) emptyView.getLayoutParams();
+                contentHeight = emptyView.getMeasuredHeight() + emptyLp.topMargin + emptyLp.bottomMargin;
+                contentWidth = emptyView.getMeasuredWidth() + emptyLp.leftMargin + emptyLp.rightMargin;
             }
         } else {
             //内容布局容器
             if (count > 2) {
                 View content = getChildAt(2);
-                measureChild(content, widthMeasureSpec, heightMeasureSpec);
-                contentHeight = content.getMeasuredHeight();
-                contentWidth = content.getMeasuredWidth();
+                measureChildWithMargins(content, widthMeasureSpec, 0, heightMeasureSpec, 0);
+                MarginLayoutParams contentLp = (MarginLayoutParams) content.getLayoutParams();
+                contentHeight = content.getMeasuredHeight() + contentLp.topMargin + contentLp.bottomMargin;
+                contentWidth = content.getMeasuredWidth() + contentLp.leftMargin + contentLp.rightMargin;
             }
         }
 
@@ -284,15 +286,21 @@ public class RefreshLayout extends ViewGroup {
             //空布局容器
             if (count > 3) {
                 View emptyView = getChildAt(3);
-                emptyView.layout(getPaddingLeft(), getPaddingTop(), getPaddingLeft()
-                        + emptyView.getMeasuredWidth(), getPaddingTop() + emptyView.getMeasuredHeight());
+                MarginLayoutParams emptyLp = (MarginLayoutParams) emptyView.getLayoutParams();
+                emptyView.layout(getPaddingLeft() + emptyLp.leftMargin,
+                        getPaddingTop() + emptyLp.topMargin,
+                        getPaddingLeft() + emptyLp.leftMargin + emptyView.getMeasuredWidth(),
+                        getPaddingTop() + emptyLp.topMargin + emptyView.getMeasuredHeight());
             }
         } else {
             //内容布局容器
             if (count > 2) {
                 View content = getChildAt(2);
-                content.layout(getPaddingLeft(), getPaddingTop(), getPaddingLeft()
-                        + content.getMeasuredWidth(), getPaddingTop() + content.getMeasuredHeight());
+                MarginLayoutParams contentLp = (MarginLayoutParams) content.getLayoutParams();
+                content.layout(getPaddingLeft() + contentLp.leftMargin,
+                        getPaddingTop() + contentLp.topMargin,
+                        getPaddingLeft() + contentLp.leftMargin + content.getMeasuredWidth(),
+                        getPaddingTop() + contentLp.topMargin + content.getMeasuredHeight());
             }
         }
     }
@@ -331,6 +339,11 @@ public class RefreshLayout extends ViewGroup {
         return result;
     }
 
+    @Override
+    public ViewGroup.LayoutParams generateLayoutParams(AttributeSet attrs) {
+        return new MarginLayoutParams(getContext(), attrs);
+    }
+
     int oldY;
 
     @Override
@@ -338,6 +351,7 @@ public class RefreshLayout extends ViewGroup {
 
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                mCurrentState = STATE_NOT;
                 mTouchX = (int) ev.getX();
                 mTouchY = (int) ev.getY();
                 oldY = (int) ev.getY();
@@ -402,14 +416,10 @@ public class RefreshLayout extends ViewGroup {
                 }
 
                 if (pullRefresh() && y - mTouchY > mTouchSlop) {
-                    mCurrentState = STATE_DOWN;
-                    mInterceptTouchEvent = true;
                     return true;
                 }
 
                 if (mHasMore && pullLoadMore() && mTouchY - y > mTouchSlop) {
-                    mCurrentState = STATE_UP;
-                    mInterceptTouchEvent = true;
                     return true;
                 }
 
@@ -430,6 +440,19 @@ public class RefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_DOWN:
                 return true;
             case MotionEvent.ACTION_MOVE:
+
+                if (mCurrentState == STATE_NOT) {
+                    if (pullRefresh() && y - mTouchY > mTouchSlop) {
+                        mCurrentState = STATE_DOWN;
+                        mInterceptTouchEvent = true;
+                    }
+
+                    if (mHasMore && pullLoadMore() && mTouchY - y > mTouchSlop) {
+                        mCurrentState = STATE_UP;
+                        mInterceptTouchEvent = true;
+                    }
+                }
+
                 if (mTouchY > y) {
                     if (mCurrentState == STATE_UP && !mIsEmpty) {
                         scroll((mTouchY - y) / mDamp, true);
